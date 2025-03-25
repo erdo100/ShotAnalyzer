@@ -1,4 +1,4 @@
-from identify_shot_id import identify_shot_id
+from identify_ShotId import identify_shot_id
 from extract_b1b2b3 import extract_b1b2b3
 from update_shot_list import update_shot_list
 

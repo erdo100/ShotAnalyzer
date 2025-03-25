@@ -1,7 +1,7 @@
 import numpy as np
 from ball_velocity import ball_velocity
 from ball_direction import ball_direction
-from cushion_angle import cushion_angle
+from CushionAngle import cushion_angle
 
 def eval_hit_events(hit, si, b1b2b3, SA, param):
     b1i = b1b2b3[0]

@@ -1,4 +1,4 @@
-from identify_shot_id import identify_shot_id
+from identify_ShotId import identify_shot_id
 from update_shot_list import update_shot_list
 
 def extract_data_quality_start(SA, param, player):

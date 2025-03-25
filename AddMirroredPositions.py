@@ -1,6 +1,3 @@
-# Renaming the file to match the MATLAB file naming convention
-# New filename: AddMirroredPositions.py
-
 class AddMirroredPositions:
     def __init__(self, SA, param, update_shot_list, player_function):
         self.SA = SA
