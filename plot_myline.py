@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QGraphicsLineItem, QGraphicsScene
-from PyQt6.QtGui import QPen, QColor
+from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsScene
+from PyQt5.QtGui import QPen, QColor
 
 def plot_myline(color, x0, y0, scene):
     pen = QPen(QColor(color))

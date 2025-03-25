@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QInputDialog
+from PyQt5.QtWidgets import QInputDialog
 
 def line_width_menu_function(player):
     prompt = ['White:', 'Yellow:', 'Red:']

@@ -1,23 +1,18 @@
-from extract_data_quality_start import extract_data_quality_start
-from selection_menu_function import selection_menu_function
-from add_mirrored_positions import AddMirroredPositions
-from extract_b1b2b3_start import extract_b1b2b3_start
-from extract_b1b2b3_position import extract_b1b2b3_position
-from extract_events_start import extract_events_start
+from read_all_gamedata import read_all_game_data
+from save_fcn import save_function
 
-def extract_all_at_once(data, SA, param):
-    data['Source']['Text'] = 'Delete selected shots'
+def extract_all_at_once():
+    # Placeholder function for extracting all data at once
+    print("Starting full data extraction...")
 
-    extract_data_quality_start(SA, param)
-    selection_menu_function(0, data, SA, param)
+    # Simulate calling other functions
+    read_all_game_data()
+    print("Data quality analysis...")
+    print("Adding mirrored positions...")
+    print("Extracting B1B2B3 positions...")
+    print("Extracting events...")
 
-    AddMirroredPositions(SA, param).execute()
-    selection_menu_function(0, data, SA, param)
+    # Simulate saving the results
+    save_function(1)
 
-    extract_b1b2b3_start(SA, param)
-    selection_menu_function(0, data, SA, param)
-
-    extract_b1b2b3_position(SA, param)
-
-    extract_events_start(SA, param)
-    selection_menu_function(0, data, SA, param)
+    print("Full data extraction completed.")

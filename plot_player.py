@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem
-from PyQt6.QtGui import QPen, QBrush, QColor
+from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem
+from PyQt5.QtGui import QPen, QBrush, QColor
 
 def plot_player(scene, ball, hit, lw, ti, plotlast, param, player):
     ball_colors = ['white', 'yellow', 'red']

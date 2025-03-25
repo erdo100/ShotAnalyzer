@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QGraphicsScene, QGraphicsView
-from PyQt6.QtGui import QPen, QBrush, QColor
-from PyQt6.QtCore import Qt
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView
+from PyQt5.QtGui import QPen, QBrush, QColor
+from PyQt5.QtCore import Qt
 
 def plot_table(param, player):
     scene = QGraphicsScene()

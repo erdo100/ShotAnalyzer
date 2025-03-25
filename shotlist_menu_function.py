@@ -1,5 +1,5 @@
 import pandas as pd
-from PyQt6.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog
 
 def shotlist_menu_function(action, SA):
     if action == 'Hide all columns':

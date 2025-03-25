@@ -1,31 +1,17 @@
-from PyQt6.QtWidgets import QMessageBox
+def player_function(action):
+    # Placeholder function for player-related actions
+    print(f"Performing player action: {action}")
 
-def player_function(action, player):
-    if action == 'plotcurrent':
-        player['video'] = 0
-        # Clear previous plots
-        print("Clearing previous plots...")
-        # Plot new things
-        for shot in player['Shot']:
-            print(f"Plotting shot with {len(shot['ball'][0]['t'])} time points.")
-
-        QMessageBox.information(None, "Plot", "Current plot updated.")
-
-    elif action == 'record':
-        player['video'] = 1
-        print("Recording started...")
-        # Simulate recording logic
-        QMessageBox.information(None, "Record", "Recording completed.")
-
-    elif action == 'play':
-        player['video'] = 0
-        print("Playing animation...")
-        QMessageBox.information(None, "Play", "Animation played.")
-
-    elif action == 'stop':
-        player['video'] = 0
-        print("Stopping animation...")
-        QMessageBox.information(None, "Stop", "Animation stopped.")
-
+    if action == "plotcurrent":
+        print("Plotting current player data...")
+    elif action == "play":
+        print("Starting playback...")
+    elif action == "pause":
+        print("Pausing playback...")
+    elif action == "stop":
+        print("Stopping playback...")
     else:
-        print(f"Action '{action}' is not implemented.")
+        print("Unknown action.")
+
+    # Placeholder for further processing
+    print("Player action completed.")

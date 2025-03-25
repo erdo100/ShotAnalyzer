@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication
 
 def close_table_figure(param):
     app = QApplication.instance()
