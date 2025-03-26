@@ -13,7 +13,13 @@ def read_gamefile(filepath):
     # Extract filename
     filename = filepath.split('/')[-1].split('.')[0]
 
-    SA = {'Shot': []}
+    SA = {}
+    SA['Shot'] = []
+    SA['ShotID'] = []
+    SA['Filename'] = []
+    SA['Selected'] = []
+    SA['ErrorID'] = []
+    SA['ErrorText'] = []
     si = 0
 
     for seti, game_set in enumerate(json_data['Match']['Sets']):
@@ -37,17 +43,7 @@ def read_gamefile(filepath):
                     shot['Route0'].append(route)
 
                 SA['Shot'].append(shot)
-
-    SA['Table'] = pd.DataFrame({
-        'Selected': [False] * si,
-        'ShotID': [entry['PathTrackingId'] for game_set in json_data['Match']['Sets'] for entry in game_set['Entries'] if entry['PathTrackingId'] > 0],
-        'Filename': [filename] * si,
-        'GameType': [json_data['Match']['GameType']] * si,
-        'Player': [entry['Scoring']['Player'] for game_set in json_data['Match']['Sets'] for entry in game_set['Entries'] if entry['PathTrackingId'] > 0],
-        'ErrorID': [-1] * si,
-        'ErrorText': ['only read in'] * si,
-        'Interpreted': [0] * si,
-        'Mirrored': [0] * si
-    })
-
+                SA['ShotID'].append(entry['PathTrackingId'])
+                SA['Filename'].append(filename)
+            
     return SA

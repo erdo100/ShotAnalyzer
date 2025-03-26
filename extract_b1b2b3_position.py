@@ -1,32 +1,20 @@
-from identify_ShotId import identify_shot_id
-from update_shot_list import update_shot_list
 from player_function import player_function
+from str2num_b1b2b3 import str2num_b1b2b3
 
-def extract_b1b2b3_position(SA, param, player):
+def extract_b1b2b3_position(SA, param):
     print('Start identifying B1B2B3 Positions ...')
 
-    hsl_data = SA['Table']['Data']
-    hsl_columns = SA['Table']['ColumnName']
+    for si in range(len(SA['Shot'])):
+        b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA['B1B2B3'][si])
 
-    for ti, row in enumerate(hsl_data):
-        identify_shot_id(ti, hsl_data, hsl_columns, SA)
-        si = SA['Current_si']
+        for bi in range(1, 4):
+            varname_x = f"B{bi}posX"
+            SA[varname_x][si] = SA['Shot'][si]['Route'][b1b2b3[bi - 1]]['x'][0] / param['size'][1] * 8
 
-        if SA['Table']['Interpreted'][si] == 0:
-            b1b2b3, b1i, b2i, b3i = str2num_B1B2B3(SA['Table']['B1B2B3'][si])
+            varname_y = f"B{bi}posY"
+            SA[varname_y][si] = SA['Shot'][si]['Route'][b1b2b3[bi - 1]]['y'][0] / param['size'][0] * 4
 
-            for bi in range(1, 4):
-                varname_x = f"B{bi}posX"
-                SA['Table'][varname_x][si] = SA['Shot'][si]['Route'][b1b2b3[bi - 1]]['x'][0] / param['size'][1] * 8
-
-                varname_y = f"B{bi}posY"
-                SA['Table'][varname_y][si] = SA['Shot'][si]['Route'][b1b2b3[bi - 1]]['y'][0] / param['size'][0] * 4
-
-                SA['Table']['ErrorID'][si] = None
-                SA['Table']['ErrorText'][si] = None
-
-    update_shot_list(SA)
-    player['uptodate'] = False
-    player_function('plotcurrent', player)
+            SA['ErrorID'][si] = None
+            SA['ErrorText'][si] = None
 
     print(f"done ({__name__})")
