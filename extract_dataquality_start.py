@@ -67,3 +67,5 @@ def extract_data_quality_start(SA, param):
     selected_count = sum(SA['Selected'])
     print(f"{selected_count}/{len(SA['Shot'])} shots selected")
     print(f"done ({__name__})")
+    
+    return SA

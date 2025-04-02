@@ -22,3 +22,5 @@ def extract_b1b2b3_start(SA):
     selected_count = sum(SA['Selected'])
     print(f"{selected_count}/{len(SA['Shot'])} shots selected")
     print(f"done ({__name__})")
+
+    return SA

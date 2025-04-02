@@ -9,6 +9,12 @@ def str2num_b1b2b3(b1b2b3):
     Returns:
         tuple: A tuple containing the numerical indices of B1, B2, and B3.
     """
-    mapping = {'W': 1, 'Y': 2, 'R': 3}
-    b1b2b3_indices = [mapping[char] for char in b1b2b3]
-    return tuple(b1b2b3_indices)
+    mapping = {'W': 0, 'Y': 1, 'R': 2}
+
+    b1i = mapping[b1b2b3[0]]
+    b2i = mapping[b1b2b3[1]]
+    b3i = mapping[b1b2b3[2]]
+
+    b1b2b3_indices = [b1i, b2i, b3i]
+    
+    return b1b2b3_indices, b1i, b2i, b3i

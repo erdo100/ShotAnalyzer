@@ -45,22 +45,23 @@ def extract_shotdata_cmd(filepath):
 
     # Step 2: Extract data quality
     print("Extracting data quality...")
-    extract_data_quality_start(SA, param)
+    SA = extract_data_quality_start(SA, param)
 
     # Step 3: Extract B1B2B3 start
     print("Extracting B1B2B3 start...")
-    extract_b1b2b3_start(SA)
+    SA = extract_b1b2b3_start(SA)
 
     # Step 4: Extract B1B2B3 positions
     print("Extracting B1B2B3 positions...")
-    extract_b1b2b3_position(SA, param)
+    SA = extract_b1b2b3_position(SA, param)
 
     # Step 5: Extract events
     print("Extracting events...")
-    extract_events_start()
+    SA = extract_events_start(SA, param)
 
     print("Shot data extraction completed.")
 
 
-filepath = "/Users/ersindogan/coding/BilliardGamesData/JSON/20210704_Ersin_Cemal.json"
+
+filepath = "D:/Programming/Shotdata/JSON/20210704_Ersin_Cemal.json"
 extract_shotdata_cmd(filepath)

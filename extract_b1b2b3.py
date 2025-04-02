@@ -15,18 +15,24 @@ def extract_b1b2b3(shot):
 
     t, b1b2b3num = zip(*sorted((shot['Route'][i]['t'][1], i) for i in range(3)))
 
+    # initiate b1, b2, b3
     b1it, b2it, b3it = b1b2b3num
 
     if len(shot['Route'][b1it]['t']) >= 3:
-        tb2i2 = next((i for i, t in enumerate(shot['Route'][b2it]['t'][1:], start=1) if t <= shot['Route'][b1it]['t'][1]), None)
-        tb3i2 = next((i for i, t in enumerate(shot['Route'][b3it]['t'][1:], start=1) if t <= shot['Route'][b1it]['t'][1]), None)
-        tb2i3 = next((i for i, t in enumerate(shot['Route'][b2it]['t'][1:], start=1) if t <= shot['Route'][b1it]['t'][2]), None)
-        tb3i3 = next((i for i, t in enumerate(shot['Route'][b3it]['t'][1:], start=1) if t <= shot['Route'][b1it]['t'][2]), None)
-
+        # find balls moving until 3rd time step of b1
+        tb2i2 = (np.where(np.array(shot['Route'][b2it]['t'][1:]) <= shot['Route'][b1it]['t'][1])[0][-1:] or [None])[-1]
+        tb3i2 = (np.where(np.array(shot['Route'][b3it]['t'][1:]) <= shot['Route'][b1it]['t'][1])[0][-1:] or [None])[-1]
+        tb2i3 = (np.where(np.array(shot['Route'][b2it]['t'][1:]) <= shot['Route'][b1it]['t'][2])[0][-1:] or [None])[-1]
+        tb3i3 = (np.where(np.array(shot['Route'][b3it]['t'][1:]) <= shot['Route'][b1it]['t'][2])[0][-1:] or [None])[-1]
+        
         if not any([tb2i2, tb3i2, tb2i3, tb3i3]):
-            return col[b1b2b3num], err
+            # only b1 has moved for sure
+            b1b2b3 = ''.join(col[i] for i in b1b2b3num)
+            return b1b2b3, err
     else:
-        return col, err
+        # no ball has moved
+        b1b2b3 = col
+        return b1b2b3, err
 
     if any([tb2i2, tb2i3]) and not any([tb3i2, tb3i3]):
         vec_b1b2 = [shot['Route'][b2it]['x'][0] - shot['Route'][b1it]['x'][0],
