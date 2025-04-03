@@ -1,2 +1,0 @@
-E:\ShotAnalyzer\Shot_Analyzer_43e_SupportBBT\ShotAnalyzer_43e_SupportBBT.exe
-pause
