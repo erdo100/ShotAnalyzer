@@ -1,9 +1,8 @@
-from read_gamefile import read_gamefile
-from extract_dataquality_start import extract_data_quality_start
-from extract_b1b2b3_start import extract_b1b2b3_start
-from extract_b1b2b3_position import extract_b1b2b3_position
-from extract_events_start import extract_events_start
 import numpy as np
+from read_gamefile import read_gamefile
+from extract_dataquality_start import extract_dataquality_start
+from extract_b1b2b3_start import extract_b1b2b3_start
+from extract_events_start import extract_events_start
 
 def extract_shotdata_cmd(filepath):
     """
@@ -45,19 +44,15 @@ def extract_shotdata_cmd(filepath):
 
     # Step 2: Extract data quality
     print("Extracting data quality...")
-    SA = extract_data_quality_start(SA, param)
+    extract_dataquality_start(SA, param)
 
     # Step 3: Extract B1B2B3 start
     print("Extracting B1B2B3 start...")
-    SA = extract_b1b2b3_start(SA)
+    extract_b1b2b3_start(SA, param)
 
-    # Step 4: Extract B1B2B3 positions
-    print("Extracting B1B2B3 positions...")
-    SA = extract_b1b2b3_position(SA, param)
-
-    # Step 5: Extract events
+    # Step 4: Extract events
     print("Extracting events...")
-    SA = extract_events_start(SA, param)
+    extract_events_start(SA, param)
 
     print("Shot data extraction completed.")
 
