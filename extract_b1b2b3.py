@@ -4,68 +4,93 @@ from angle_vector import angle_vector
 def extract_b1b2b3(shot):
     b1b2b3num = []
     err = {'code': None, 'text': ''}
+    col = 'WYR'  # Default ordering (W=0, Y=1, R=2)
 
-    col = 'WYR'
+    # Get all three routes first for cleaner access
+    route0 = shot['Route0']
+    route1 = shot['Route1']
+    route2 = shot['Route2']
 
-    if len(shot['Route'][0]['t']) < 2 or len(shot['Route'][1]['t']) < 2 or len(shot['Route'][2]['t']) < 2:
-        b1b2b3 = 'WYR'
-        err['code'] = 2
-        err['text'] = f"Empty Data ({__name__})"
-        return b1b2b3, err
+    # Check if routes have enough points
+    if len(route0) < 2 or len(route1) < 2 or len(route2) < 2:
+        return 'WYR', {'code': 2, 'text': f"Empty Data ({__name__})"}
 
-    t, b1b2b3num = zip(*sorted((shot['Route'][i]['t'][1], i) for i in range(3)))
+    # Get sorted routes by their second timestamp
+    sorted_routes = sorted(
+        [(route0['t'].iloc[1], 0),
+         (route1['t'].iloc[1], 1),
+         (route2['t'].iloc[1], 2)],
+        key=lambda x: x[0]
+    )
+    b1it, b2it, b3it = [idx for (t, idx) in sorted_routes]
 
-    # initiate b1, b2, b3
-    b1it, b2it, b3it = b1b2b3num
+    # Get the actual route DataFrames in order
+    b1_route = shot[f'Route{b1it}']
+    b2_route = shot[f'Route{b2it}']
+    b3_route = shot[f'Route{b3it}']
 
-    if len(shot['Route'][b1it]['t']) >= 3:
-        # find balls moving until 3rd time step of b1
-        tb2i2 = (np.where(np.array(shot['Route'][b2it]['t'][1:]) <= shot['Route'][b1it]['t'][1])[0][-1:] or [None])[-1]
-        tb3i2 = (np.where(np.array(shot['Route'][b3it]['t'][1:]) <= shot['Route'][b1it]['t'][1])[0][-1:] or [None])[-1]
-        tb2i3 = (np.where(np.array(shot['Route'][b2it]['t'][1:]) <= shot['Route'][b1it]['t'][2])[0][-1:] or [None])[-1]
-        tb3i3 = (np.where(np.array(shot['Route'][b3it]['t'][1:]) <= shot['Route'][b1it]['t'][2])[0][-1:] or [None])[-1]
-        
-        if not any([tb2i2, tb3i2, tb2i3, tb3i3]):
-            # only b1 has moved for sure
-            b1b2b3 = ''.join(col[i] for i in b1b2b3num)
-            return b1b2b3, err
-    else:
-        # no ball has moved
-        b1b2b3 = col
-        return b1b2b3, err
+    # Early return if not enough points in b1
+    if len(b1_route) < 3:
+        return col, err
 
+    # Find movement indices
+    b1_t1 = b1_route['t'].iloc[1]
+    b1_t2 = b1_route['t'].iloc[2]
+    
+    def get_last_movement(route, threshold):
+        mov_idx = np.where(route['t'].iloc[1:] <= threshold)[0]
+        return mov_idx[-1] if len(mov_idx) > 0 else None
+
+    tb2i2 = get_last_movement(b2_route, b1_t1)
+    tb3i2 = get_last_movement(b3_route, b1_t1)
+    tb2i3 = get_last_movement(b2_route, b1_t2)
+    tb3i3 = get_last_movement(b3_route, b1_t2)
+
+    # Case 1: Only b1 has moved
+    if not any([tb2i2, tb3i2, tb2i3, tb3i3]):
+        return ''.join(col[i] for i in [b1it, b2it, b3it]), err
+
+    # Case 2: b1 and b2 have moved
     if any([tb2i2, tb2i3]) and not any([tb3i2, tb3i3]):
-        vec_b1b2 = [shot['Route'][b2it]['x'][0] - shot['Route'][b1it]['x'][0],
-                    shot['Route'][b2it]['y'][0] - shot['Route'][b1it]['y'][0]]
-        vec_b1dir = [shot['Route'][b1it]['x'][1] - shot['Route'][b1it]['x'][0],
-                     shot['Route'][b1it]['y'][1] - shot['Route'][b1it]['y'][0]]
-        vec_b2dir = [shot['Route'][b2it]['x'][1] - shot['Route'][b2it]['x'][0],
-                     shot['Route'][b2it]['y'][1] - shot['Route'][b2it]['y'][0]]
+        vec_b1b2 = [
+            b2_route['x'].iloc[0] - b1_route['x'].iloc[0],
+            b2_route['y'].iloc[0] - b1_route['y'].iloc[0]
+        ]
+        vec_b1dir = [
+            b1_route['x'].iloc[1] - b1_route['x'].iloc[0],
+            b1_route['y'].iloc[1] - b1_route['y'].iloc[0]
+        ]
+        vec_b2dir = [
+            b2_route['x'].iloc[1] - b2_route['x'].iloc[0],
+            b2_route['y'].iloc[1] - b2_route['y'].iloc[0]
+        ]
 
-        angle_b1 = angle_vector(vec_b1b2, vec_b1dir)
-        angle_b2 = angle_vector(vec_b1b2, vec_b2dir)
+        if angle_vector(vec_b1b2, vec_b2dir) > 90:
+            return 'WYR'[b1it] + 'WYR'[b2it] + 'WYR'[b3it], err
 
-        if angle_b2 > 90:
-            b1b2b3num = [1, 0, 2]
-
+    # Case 3: b1 and b3 have moved
     if not any([tb2i2, tb2i3]) and any([tb3i2, tb3i3]):
-        vec_b1b3 = [shot['Route'][b3it]['x'][0] - shot['Route'][b1it]['x'][0],
-                    shot['Route'][b3it]['y'][0] - shot['Route'][b1it]['y'][0]]
-        vec_b1dir = [shot['Route'][b1it]['x'][1] - shot['Route'][b1it]['x'][0],
-                     shot['Route'][b1it]['y'][1] - shot['Route'][b1it]['y'][0]]
-        vec_b3dir = [shot['Route'][b3it]['x'][1] - shot['Route'][b3it]['x'][0],
-                     shot['Route'][b3it]['y'][1] - shot['Route'][b3it]['y'][0]]
+        vec_b1b3 = [
+            b3_route['x'].iloc[0] - b1_route['x'].iloc[0],
+            b3_route['y'].iloc[0] - b1_route['y'].iloc[0]
+        ]
+        vec_b1dir = [
+            b1_route['x'].iloc[1] - b1_route['x'].iloc[0],
+            b1_route['y'].iloc[1] - b1_route['y'].iloc[0]
+        ]
+        vec_b3dir = [
+            b3_route['x'].iloc[1] - b3_route['x'].iloc[0],
+            b3_route['y'].iloc[1] - b3_route['y'].iloc[0]
+        ]
 
-        angle_b1 = angle_vector(vec_b1b3, vec_b1dir)
-        angle_b3 = angle_vector(vec_b1b3, vec_b3dir)
+        if angle_vector(vec_b1b3, vec_b3dir) > 90:
+            return 'WYR'[b1it] + 'WYR'[b3it] + 'WYR'[b2it], err
 
-        if angle_b3 > 90:
-            b1b2b3num = [1, 2, 0]
+    # Default case
+    b1b2b3 = ''.join(col[i] for i in [b1it, b2it, b3it])
 
-    b1b2b3 = ''.join(col[i] for i in b1b2b3num)
-
+    # Error case if all balls moved
     if any([tb2i2, tb2i3]) and any([tb3i2, tb3i3]):
-        err['code'] = 2
-        err['text'] = f"all balls moved at same time ({__name__})"
+        err.update({'code': 2, 'text': f"all balls moved at same time ({__name__})"})
 
     return b1b2b3, err

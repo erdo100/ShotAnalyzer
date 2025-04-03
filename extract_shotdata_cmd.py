@@ -63,5 +63,7 @@ def extract_shotdata_cmd(filepath):
 
 
 
+
+
 filepath = "D:/Programming/Shotdata/JSON/20210704_Ersin_Cemal.json"
 extract_shotdata_cmd(filepath)

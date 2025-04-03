@@ -2,48 +2,42 @@ import json
 import pandas as pd
 
 def read_gamefile(filepath):
-    # Read the file in JSON format
+    # Read JSON file
     with open(filepath, 'r') as f:
         json_data = json.load(f)
 
-    # Scaling factors
+    # Table dimensions (scaling factors)
     tableX = 2840
     tableY = 1420
-
-    # Extract filename
     filename = filepath.split('/')[-1].split('.')[0]
 
-    SA = {}
-    SA['Shot'] = []
-    SA['ShotID'] = []
-    SA['Filename'] = []
-    SA['Selected'] = []
-    SA['ErrorID'] = []
-    SA['ErrorText'] = []
-    si = 0
+    # Initialize lists to store shot data
+    shot_data = []
 
-    for seti, game_set in enumerate(json_data['Match']['Sets']):
+    for game_set in json_data['Match']['Sets']:
         for entry in game_set['Entries']:
             if entry['PathTrackingId'] > 0:
-                si += 1
-                shot = {
-                    'Route': [],
-                    'Route0': [],
-                    'hit': 0
-                }
-
+                routes = []
+                
+                # Extract all 3 routes (before, during, after hit)
                 for bi in range(3):
                     coords = entry['PathTracking']['DataSets'][bi]['Coords']
-                    route = {
+                    route_df = pd.DataFrame({
                         't': [c['DeltaT_500us'] * 0.0005 for c in coords],
                         'x': [c['X'] * tableX for c in coords],
                         'y': [c['Y'] * tableY for c in coords]
-                    }
-                    shot['Route'].append(route)
-                    shot['Route0'].append(route)
+                    })
+                    routes.append(route_df)
+                
+                # Append shot data to list
+                shot_data.append({
+                    'ShotID': entry['PathTrackingId'],
+                    'Filename': filename,
+                    'Route0': routes[0],  # Before hit
+                    'Route1': routes[1],  # During hit
+                    'Route2': routes[2],  # After hit
+                })
 
-                SA['Shot'].append(shot)
-                SA['ShotID'].append(entry['PathTrackingId'])
-                SA['Filename'].append(filename)
-            
+    # Convert to DataFrame
+    SA = pd.DataFrame(shot_data)
     return SA

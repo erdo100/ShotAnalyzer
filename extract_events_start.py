@@ -10,18 +10,17 @@ def extract_events_start(SA, param):
     """
     Extract all ball-ball hit events and ball-cushion hit events.
     Args:
-        SA (object): Global Shot Analyzer object.
+        SA (DataFrame): Shot Analyzer DataFrame.
     """
-
     err = 0
     err_shots = []
 
-    shotlength = len(SA['Shot'])
+    shotlength = len(SA)
     for si in range(shotlength):
         print(f"Shot {si + 1}/{shotlength}")
-        if len(SA['B1B2B3'][si]) == 3:
-            # try:
-            b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA['B1B2B3'][si])
+        if len(SA.iloc[si]['B1B2B3']) == 3:
+            # Extract B1B2B3 indices
+            b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA.iloc[si]['B1B2B3'])
 
             # Extract all events
             hit, _ = extract_events(SA, si, param)
@@ -36,25 +35,18 @@ def extract_events_start(SA, param):
             SA = create_varname(SA, hit, si)
 
             # Copy the hit data to SA
-            SA['Shot'][si]['hit'] = hit
+            SA.at[si, 'hit'] = hit
 
             # Set interpreted flag
-            SA['Interpreted'][si] = 1
+            SA.at[si, 'Interpreted'] = 1
 
             # Reset flags and delete Route data
-            SA['ErrorID'][si] = None
-            SA['ErrorText'][si] = None
-            SA['Selected'][si] = False
-            SA['Shot'][si]['Route'] = None
-
-            # except Exception as e:
-            #     SA['ErrorID'][si] = 100
-            #     SA['ErrorText'][si] = 'Check diagram, correct or delete.'
-            #     SA['Selected'][si] = True
-
-            #     print("Some error occurred, probably ball routes are not continuous. Check diagram, correct or delete")
-            #     err += 1
-            #     err_shots.append(si)
+            SA.at[si, 'ErrorID'] = None
+            SA.at[si, 'ErrorText'] = None
+            SA.at[si, 'Selected'] = False
+            SA.at[si, 'Route0'] = None
+            SA.at[si, 'Route1'] = None
+            SA.at[si, 'Route2'] = None
         else:
             print(f"B1B2B3 has not 3 letters, skipping Shot {si + 1}")
 
