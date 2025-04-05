@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, Any
-from str2num_B1B2B3 import str2num_B1B2B3
+from str2num_b1b2b3 import str2num_b1b2b3
 from eval_hit_events import eval_hit_events
 from extract_events import extract_events
 from eval_point_and_kiss_control import eval_point_and_kiss_control
@@ -32,7 +32,7 @@ def extract_events_start(SA: dict, param: dict):
             if len(row['B1B2B3']) == 3:
                 # try:
                 # Convert B1B2B3 string to indices
-                b1b2b3, b1i, b2i, b3i = str2num_B1B2B3(row['B1B2B3'])
+                b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(row['B1B2B3'])
                 
                 # Extract all events
                 hit, _ = extract_events(si, SA, param)

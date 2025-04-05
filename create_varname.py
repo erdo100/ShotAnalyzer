@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, Any
-from str2num_B1B2B3 import str2num_B1B2B3
+from str2num_b1b2b3 import str2num_b1b2b3
 from replace_colors_b1b2b3 import replace_colors_b1b2b3
 
 
@@ -21,7 +21,7 @@ def create_varname(si: int, hit: dict, SA: dict, param: dict) -> dict:
     
     # Get ball order
     b1b2b3_str = SA['Table'].loc[si, 'B1B2B3']
-    b1b2b3, b1i, b2i, b3i = str2num_B1B2B3(b1b2b3_str)
+    b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(b1b2b3_str)
     
     # Write BX_with variables
     for balli in [1, 2, 3]:

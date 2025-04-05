@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from typing import Tuple, Dict, Any
 from scipy.interpolate import interp1d
-from str2num_B1B2B3 import str2num_B1B2B3
+from str2num_b1b2b3 import str2num_b1b2b3
 
 
 def extract_events(si: int, SA: Dict[str, Any], param: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -24,7 +24,7 @@ def extract_events(si: int, SA: Dict[str, Any], param: Dict[str, Any]) -> Tuple[
     # Get shot information
     shot_id = SA['Table'].loc[si, 'ShotID']
     b1b2b3_str = SA['Table'].loc[si, 'B1B2B3']
-    b1b2b3, b1i, b2i, b3i = str2num_B1B2B3(b1b2b3_str)
+    b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(b1b2b3_str)
     
     # Initialize ball data structures
     ball0 = {}

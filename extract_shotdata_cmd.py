@@ -60,5 +60,6 @@ def extract_shotdata_cmd(filepath):
 
 
 
-filepath = "D:/Programming/Shotdata/JSON/20210704_Ersin_Cemal.json"
+#filepath = "D:/Programming/Shotdata/JSON/20210704_Ersin_Cemal.json"
+filepath = "D:\\Billard\\0_AllDatabase\\WebSport\\20181031_match_03_Ersin_Cemal.txt"
 extract_shotdata_cmd(filepath)

@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Dict, Any
 import pandas as pd
-from str2num_B1B2B3 import str2num_B1B2B3
+from str2num_b1b2b3 import str2num_b1b2b3
 from eval_kiss import eval_kiss
 
 def eval_point_and_kiss_control(si: int, hit: Dict[int, Dict[str, Any]], SA: Dict[str, Any], param: Dict[str, Any]) -> Dict[int, Dict[str, Any]]:
@@ -22,7 +22,7 @@ def eval_point_and_kiss_control(si: int, hit: Dict[int, Dict[str, Any]], SA: Dic
     # Get shot information
     shot_id = SA['Table'].loc[si, 'ShotID']
     b1b2b3_str = SA['Table'].loc[si, 'B1B2B3']
-    b1b2b3, b1i, b2i, b3i = str2num_B1B2B3(b1b2b3_str)
+    b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(b1b2b3_str)
     
     # Get ball trajectories from nested structure
     ball = {}
