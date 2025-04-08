@@ -4,11 +4,10 @@ import os
 import pandas as pd
 import copy
 import warnings # Used to suppress potential division-by-zero warnings if dt is zero
+from str2num_b1b2b3 import str2num_b1b2b3
+from angle_vector import angle_vector
 
-# Assume these functions exist from the original file:
-# angle_vector(a, b)
-# str2num_b1b2b3(b1b2b3_str)
-# The main SA structure and param dictionary are expected as inputs.
+
 
 def extract_events(SA, si, param):
     """
@@ -104,8 +103,7 @@ def extract_events(SA, si, param):
 
 
         # Calculate initial velocities/derivatives
-        for bi_idx in range(3):
-            _update_ball0_derivatives(bi_idx, ball0_init)
+        _update_ball0_derivatives(ball0_init)
 
         # Set initial velocities for B2, B3 to zero
         for idx_zero in [b2i, b3i]:
@@ -117,35 +115,37 @@ def extract_events(SA, si, param):
     # --- End Initialization Helper ---
 
     # --- Derivative Calculation Helper ---
-    def _update_ball0_derivatives(bi_idx, ball0_data):
+    def _update_ball0_derivatives(ball0_data):
         """Calculates/updates vx, vy, v, dt in the ball0_data structure for a ball."""
-        if len(ball0_data[bi_idx].get('t', [])) >= 2:
-            t = ball0_data[bi_idx]['t']
-            x = ball0_data[bi_idx]['x']
-            y = ball0_data[bi_idx]['y']
-            dt = np.diff(t)
-            # Prevent division by zero or negative dt
-            valid_dt = dt > np.finfo(float).eps
-            dt_safe = np.where(valid_dt, dt, np.finfo(float).eps)
+        for bi_idx in range(3):
 
-            vx = np.zeros_like(t)
-            vy = np.zeros_like(t)
-            vx[:-1] = np.diff(x) / dt_safe
-            vy[:-1] = np.diff(y) / dt_safe
+            if len(ball0_data[bi_idx].get('t', [])) >= 2:
+                t = ball0_data[bi_idx]['t']
+                x = ball0_data[bi_idx]['x']
+                y = ball0_data[bi_idx]['y']
+                dt = np.diff(t)
+                # Prevent division by zero or negative dt
+                valid_dt = dt > np.finfo(float).eps
+                dt_safe = np.where(valid_dt, dt, np.finfo(float).eps)
 
-            # Append last dt for consistent array length, handle single diff case
-            dt_full = np.append(dt, dt[-1] if len(dt) > 0 else 0)
+                vx = np.zeros_like(t)
+                vy = np.zeros_like(t)
+                vx[:-1] = np.diff(x) / dt_safe
+                vy[:-1] = np.diff(y) / dt_safe
 
-            ball0_data[bi_idx]['dt'] = dt_full
-            ball0_data[bi_idx]['vx'] = vx
-            ball0_data[bi_idx]['vy'] = vy
-            ball0_data[bi_idx]['v'] = np.sqrt(vx**2 + vy**2)
-        else: # Handle cases with less than 2 points
-            ball0_data[bi_idx]['dt'] = np.zeros(len(ball0_data[bi_idx].get('t', [])))
-            ball0_data[bi_idx]['vx'] = np.zeros(len(ball0_data[bi_idx].get('t', [])))
-            ball0_data[bi_idx]['vy'] = np.zeros(len(ball0_data[bi_idx].get('t', [])))
-            ball0_data[bi_idx]['v']  = np.zeros(len(ball0_data[bi_idx].get('t', [])))
-    # --- End Derivative Calculation Helper ---
+                # Append last dt for consistent array length, handle single diff case
+                dt_full = np.append(dt, dt[-1] if len(dt) > 0 else 0)
+
+                ball0_data[bi_idx]['dt'] = dt_full
+                ball0_data[bi_idx]['vx'] = vx
+                ball0_data[bi_idx]['vy'] = vy
+                ball0_data[bi_idx]['v'] = np.sqrt(vx**2 + vy**2)
+            else: # Handle cases with less than 2 points
+                ball0_data[bi_idx]['dt'] = np.zeros(len(ball0_data[bi_idx].get('t', [])))
+                ball0_data[bi_idx]['vx'] = np.zeros(len(ball0_data[bi_idx].get('t', [])))
+                ball0_data[bi_idx]['vy'] = np.zeros(len(ball0_data[bi_idx].get('t', [])))
+                ball0_data[bi_idx]['v']  = np.zeros(len(ball0_data[bi_idx].get('t', [])))
+        # --- End Derivative Calculation Helper ---
 
     # --- Approximation Helper ---
     def _calculate_approximations(bi_idx, ball, ball0, hit, Tall0, dT, tvec, param):
@@ -347,6 +347,8 @@ def extract_events(SA, si, param):
                                     if not (np.isnan(cushx) or np.isnan(cushy)):
                                         # [time, ball_idx, type(2=cush), id(0-3), x, y]
                                         hits.append([tc, bi_idx, 2, cii, cushx, cushy])
+                                        print(f"Potential cushion hit detected: {hits[-1]}") # Debugging output
+                                        
                             except Exception as e:
                                 # print(f"Warning: Cushion hit interpolation failed for ball {bi_idx}, cushion {cii}: {e}") # Removed verbosity
                                 pass # Ignore interpolation errors
@@ -515,7 +517,12 @@ def extract_events(SA, si, param):
             return next_event_time, [], False # Return next data time, empty list, and False (no hit processed)
 
     def _apply_hit_event(tc, hits_at_tc, ball, ball0, hit, err):
-        """Updates ball, ball0, and hit structures for a detected hit event."""
+        """Updates ball, ball0, and hit structures for a detected hit event.
+        that means:
+        - if hit time is not already in the time, add the hit to involved ball time, positions
+        - add the hit time to ball not involved in the hit, interpolating position
+        - remove from ball0
+        -"""
         balls_hit_this_step = set()
         processed_balls = set() # Track balls updated in this function call
 
@@ -542,7 +549,7 @@ def extract_events(SA, si, param):
             if idx_in_ball0 > 0 and tc not in ball0[bi_idx]['t']:
                  keep_mask[idx_in_ball0-1] = True # Keep the point just before
 
-            for key in ['t', 'x', 'y', 'vx', 'vy', 'v', 'dt']:
+            for key in ['t', 'x', 'y']:
                 if key in ball0[bi_idx] and len(ball0[bi_idx][key]) > 0:
                      ball0[bi_idx][key] = ball0[bi_idx][key][keep_mask]
 
@@ -616,7 +623,7 @@ def extract_events(SA, si, param):
                 if idx_in_ball0 > 0 and tc not in t0:
                     keep_mask[idx_in_ball0-1] = True
 
-                for key in ['t', 'x', 'y', 'vx', 'vy', 'v', 'dt']:
+                for key in ['t', 'x', 'y']:
                      if key in ball0[bi_idx_no_hit] and len(ball0[bi_idx_no_hit][key]) > 0:
                           ball0[bi_idx_no_hit][key] = ball0[bi_idx_no_hit][key][keep_mask]
 
@@ -653,63 +660,29 @@ def extract_events(SA, si, param):
 
             x_at_next_t, y_at_next_t = np.nan, np.nan
 
+            if b_approx[bi_idx]['vt1'] > 0:
             # Interpolate position from original data if possible
-            if len(t0) >= 2 and t0[0] <= next_t <= t0[-1] :
-                 try:
-                    # Find where next_t fits in the original time series
-                    interp_mask = np.isfinite(t0) & np.isfinite(x0) & np.isfinite(y0)
-                    if np.sum(interp_mask) >= 2:
-                        x_at_next_t = np.interp(next_t, t0[interp_mask], x0[interp_mask])
-                        y_at_next_t = np.interp(next_t, t0[interp_mask], y0[interp_mask])
-                 except Exception: pass # Keep NaN if interp fails
-
-            # If interpolation failed or ball wasn't moving, use last known position
-            if np.isnan(x_at_next_t) or np.isnan(y_at_next_t):
-                 # Fallback: use the approximated position if available and ball was moving
-                 vt1_appr = b_approx[bi_idx].get('vt1', 0)
-                 if vt1_appr > np.finfo(float).eps:
-                      xa_appr = b_approx[bi_idx].get('xa', [])
-                      ya_appr = b_approx[bi_idx].get('ya', [])
-                      t_appr_vec = b_approx[bi_idx].get('tappr', [])
-                      if len(t_appr_vec) > 0 and len(xa_appr) == len(t_appr_vec) and len(ya_appr) == len(t_appr_vec):
-                           finite_mask = np.isfinite(t_appr_vec) & np.isfinite(xa_appr) & np.isfinite(ya_appr)
-                           if np.sum(finite_mask) >= 2 and t_appr_vec[0] <= next_t <= t_appr_vec[-1]:
-                                try:
-                                     x_at_next_t = np.interp(next_t, t_appr_vec[finite_mask], xa_appr[finite_mask])
-                                     y_at_next_t = np.interp(next_t, t_appr_vec[finite_mask], ya_appr[finite_mask])
-                                except Exception: pass
-                 # Final fallback: use the very last position in the processed 'ball' trajectory
-                 if np.isnan(x_at_next_t) and len(ball[bi_idx]['x']) > 0: x_at_next_t = ball[bi_idx]['x'][-1]
-                 if np.isnan(y_at_next_t) and len(ball[bi_idx]['y']) > 0: y_at_next_t = ball[bi_idx]['y'][-1]
-
+                x_at_next_t = np.interp(next_t, t0, x0)
+                y_at_next_t = np.interp(next_t, t0, y0)
+            else:
+                x_at_next_t = ball[bi_idx]['x'][-1] # Use last known position if ball stopped
+                y_at_next_t = ball[bi_idx]['y'][-1]
 
             # Update ball (processed trajectory)
             ball[bi_idx]['t'] = np.append(ball[bi_idx]['t'], next_t)
             ball[bi_idx]['x'] = np.append(ball[bi_idx]['x'], x_at_next_t)
             ball[bi_idx]['y'] = np.append(ball[bi_idx]['y'], y_at_next_t)
 
-            # Update ball0 (remaining raw data)
-            idx_in_ball0 = np.searchsorted(t0, next_t, side='left')
-            keep_mask = t0 >= next_t
-            # Ensure we keep the point right before next_t if next_t isn't exactly present
-            # This might not be necessary if we ensure the exact time point exists.
-            # Let's simplify: just keep points >= next_t
-            # if idx_in_ball0 > 0 and next_t not in t0:
-            #     keep_mask[idx_in_ball0-1] = True
+            # Update ball0 (remaining raw data) remove values smaller next_t
+            keep_mask = ball0[bi_idx]['t'] >= next_t
 
-            for key in ['t', 'x', 'y', 'vx', 'vy', 'v', 'dt']:
-                 if key in ball0[bi_idx] and len(ball0[bi_idx][key]) > 0:
-                      ball0[bi_idx][key] = ball0[bi_idx][key][keep_mask]
-
-            # Ensure the first point in ball0 is exactly at next_t
-            if len(ball0[bi_idx]['t']) == 0 or not np.isclose(ball0[bi_idx]['t'][0], next_t):
-                ball0[bi_idx]['t'] = np.insert(ball0[bi_idx]['t'], 0, next_t)
-                ball0[bi_idx]['x'] = np.insert(ball0[bi_idx]['x'], 0, x_at_next_t)
-                ball0[bi_idx]['y'] = np.insert(ball0[bi_idx]['y'], 0, y_at_next_t)
-                # Derivatives need recalc after adding point
-            else: # If time exists, just update position
-                 ball0[bi_idx]['x'][0] = x_at_next_t
-                 ball0[bi_idx]['y'][0] = y_at_next_t
+            if ball0[bi_idx]['t'][1] <= next_t: # If first point is after next_t, keep it
+                for key in ['t', 'x', 'y']:
+                    ball0[bi_idx][key] = ball0[bi_idx][key][keep_mask]
+            else:
+                ball0[bi_idx]['t'][0] = next_t # Set first point to next_t
+                ball0[bi_idx]['x'][0] = x_at_next_t
+                ball0[bi_idx]['y'][0] = y_at_next_t
 
             processed_balls.add(bi_idx)
 
@@ -807,6 +780,10 @@ def extract_events(SA, si, param):
         if is_hit_event:
             # Update ball, ball0, hit based on the hits at event_time
             processed_balls_indices = _apply_hit_event(event_time, hits_at_event_time, ball, ball0, hit, err) # err is modified in place
+            
+            # Update Derivatives in ball0
+            _update_ball0_derivatives(ball0)
+
             # Update Tall0: remove times before event_time, ensure event_time is present
             Tall0 = Tall0[Tall0 >= event_time]
             if len(Tall0) == 0 or not np.isclose(Tall0[0], event_time):
@@ -815,25 +792,23 @@ def extract_events(SA, si, param):
         else: # No hit, advance to next timestep
             processed_balls_indices = _advance_timestep(event_time, ball, ball0, b_approx)
             # Update Tall0: simply move to the next time step
-            Tall0 = Tall0[1:]
+            Tall0 = Tall0[1:]            
 
-        # 7. Update Derivatives in ball0 for affected balls
+        # 7. update for affected balls
         for bi_idx in processed_balls_indices:
              # Only update if the ball was actually involved in a hit or moved
              last_hit_with = hit[bi_idx]['with'][-1] if len(hit[bi_idx]['with']) > 0 else '-'
              # Update needed if hit occurred OR if timestep advanced and ball was moving
              # Needs careful check: derivatives should reflect state *after* event_time
-             _update_ball0_derivatives(bi_idx, ball0)
+             
 
 
         # 8. Loop Condition
         do_scan = len(Tall0) >= 2
         ti += 1
-        if ti > 500: # Safety break for potential infinite loops
-             print(f"Warning: Exceeded maximum loop iterations for shot index {si}.")
-             err['code'] = 99
-             err['text'] = 'ERROR: Event extraction loop exceeded max iterations.'
-             break
+        print(f"Step {ti}: Tall0 = {Tall0[0:4]}, dT = {dT}, Hits = {len(hits_at_event_time)}, Event Time = {event_time:.4f}") # Debug output
+        if ti == 15:
+            print("ti=15")
 
 
     # 9. Finalization
