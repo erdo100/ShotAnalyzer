@@ -12,7 +12,6 @@ from extract_dataquality_start import extract_dataquality_start
 from delete_selected_shots import delete_selected_shots
 from extract_b1b2b3 import extract_b1b2b3
 from angle_vector import angle_vector
-from extract_events import extract_events
 from str2num_b1b2b3 import str2num_b1b2b3
 
 
@@ -38,7 +37,7 @@ def extract_events_start(SA, param=None): # param added for consistency, but unu
         b1b2b3_num, b1i, b2i, b3i = str2num_b1b2b3(SA['Table'].iloc[si]['B1B2B3'])
         
         # extract all events
-        hit = extract_events(SA, si, param)
+        extract_events(SA, si, param)
         print(f"Hit data extracted for shot index {si}.")
 
 
