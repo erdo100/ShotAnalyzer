@@ -48,15 +48,6 @@ def extract_dataquality_start(SA, param):
              continue # Skip this iteration
 
         if interpreted_status == 0:
-            # Reset route data from original Route0 before applying checks
-            # Ensure Route0 exists and has the correct structure
-            if 'Route0' not in SA['Shot'][si] or len(SA['Shot'][si]['Route0']) != 3:
-                 print(f"Warning: Route0 missing or invalid for shot index {si}. Skipping quality check.")
-                 SA['Table'].iloc[si, SA['Table'].columns.get_loc('ErrorID')] = 99 # Custom error code
-                 SA['Table'].iloc[si, SA['Table'].columns.get_loc('ErrorText')] = 'Internal error: Route0 missing'
-                 SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
-                 continue
-            SA['Shot'][si]['Route'] = copy.deepcopy(SA['Shot'][si]['Route0'])
 
             # Initialize error state for this shot
             err_code = None

@@ -135,7 +135,7 @@ def read_gamefile(filepath):
                 Interpreted_list.append(0)
                 Mirrored_list.append(0) # Assuming 0 initially, MATLAB code had this
 
-                shot_data = {'Route': [{}, {}, {}], 'Route0': [{}, {}, {}], 'hit': 0}
+                shot_data = {'Route': [{}, {}, {}], 'hit': 0}
                 valid_route_data = True
                 for bi in range(3): # For each ball (0, 1, 2)
                     coords = current_entry['PathTracking']['DataSets'][bi].get('Coords')
@@ -169,8 +169,6 @@ def read_gamefile(filepath):
                         'y': np.array(y_list, dtype=float)
                     }
                     shot_data['Route'][bi] = current_route
-                    # Store initial state before modifications in quality check
-                    shot_data['Route0'][bi] = copy.deepcopy(current_route)
 
                 if valid_route_data:
                     SA['Shot'].append(shot_data)
@@ -358,7 +356,7 @@ def read_gamefile(filepath):
                 Interpreted_list.append(0)
                 Mirrored_list.append(0) # Assuming 0 initially, MATLAB code had this
 
-                shot_data = {'Route': [{}, {}, {}], 'Route0': [{}, {}, {}], 'hit': 0}
+                shot_data = {'Route': [{}, {}, {}], 'hit': 0}
                 valid_route_data = True
                 for bi in range(3): # For each ball (0, 1, 2)
                     coords = current_entry['PathTracking']['DataSets'][bi].get('Coords')
@@ -392,8 +390,6 @@ def read_gamefile(filepath):
                         'y': np.array(y_list, dtype=float)
                     }
                     shot_data['Route'][bi] = current_route
-                    # Store initial state before modifications in quality check
-                    shot_data['Route0'][bi] = copy.deepcopy(current_route)
 
                 if valid_route_data:
                     SA['Shot'].append(shot_data)

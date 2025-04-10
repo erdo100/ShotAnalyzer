@@ -5,6 +5,100 @@ from scipy.interpolate import interp1d
 from str2num_b1b2b3 import str2num_b1b2b3
 from angle_vector import angle_vector
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FFMpegWriter  # For MP4
+
+class plotshot:
+    def __init__(self, param, ShotID):
+        self.param = param
+        # Initialize the plot
+        plt.ion()  # Turn on interactive mode
+        fig, ax = plt.subplots(figsize=(7, 12))
+
+        ax.set_ylim(0, 2840)  # Set appropriate limits for your data
+        ax.set_xlim(0, 1420)
+        
+        #show axis real size
+        ax.set_aspect('equal', adjustable='box')
+        
+        # make figure close around axis
+        fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+        ax.set_yticks(np.linspace(0, 2840, 9))
+        ax.set_xticks(np.linspace(0, 1420, 5))
+
+        ax.grid(True, which='major', axis='both', linestyle='--', linewidth=0.8, color='gray')
+
+        ax.set_facecolor((0.95, 0.95, 0.95))
+        ax.set_xticklabels([])  # Remove x-axis labels
+        ax.set_yticklabels([])  # Remove y-axis labels
+        ax.tick_params(axis='both', which='both', length=0)
+
+        self.ball_line={}
+        self.ball_line[0], = ax.plot([], [], 'wo-', label='Ball 0')  # Line for Ball 0
+        self.ball_line[1], = ax.plot([], [], 'yo-', label='Ball 1')  # Line for Ball 0
+        self.ball_line[2], = ax.plot([], [], 'ro-', label='Ball 2')  # Line for Ball 0
+        
+        self.appr_line={}
+        self.appr_line[0], = ax.plot([], [], 'k+')  # Line for Ball 0
+        self.appr_line[1], = ax.plot([], [], 'k+')  # Line for Ball 0
+        self.appr_line[2], = ax.plot([], [], 'k+')  # Line for Ball 0
+        
+        self.ball_circ = {}
+        self.ball_circ[0] = plt.Circle((200, 220), self.param['ballR'], color='w', linewidth=2, fill=False)
+        self.ball_circ[1] = plt.Circle((100, 500), self.param['ballR'], color='y', linewidth=2, fill=False)
+        self.ball_circ[2] = plt.Circle((800, 1000), self.param['ballR'], color='r', linewidth=2, fill=False)
+
+        ax.add_patch(self.ball_circ[0])
+        ax.add_patch(self.ball_circ[1])
+        ax.add_patch(self.ball_circ[2])
+
+
+        # Initialize video writer (for MP4)
+        self.writer = FFMpegWriter(fps=15)  # Adjust FPS as needed
+        self.writer.setup(fig, f"extract_events_{ShotID}.mp4", dpi=100)  # Start recording
+
+        self.ax = ax
+        self.fig = fig
+
+    def close(self):
+            plt.close(self.fig)
+    
+    def plot(self, ball, b):
+        # Update the ball positions
+        self.ball_line[0].set_data(ball[0]['y'], ball[0]['x'])
+        self.ball_line[1].set_data(ball[1]['y'], ball[1]['x'])
+        self.ball_line[2].set_data(ball[2]['y'], ball[2]['x'])
+
+        # Update the circle patches for each ball
+        self.ball_circ[0].center = (ball[0]['y'][-1], ball[0]['x'][-1])
+        self.ball_circ[1].center = (ball[1]['y'][-1], ball[1]['x'][-1])
+        self.ball_circ[2].center = (ball[2]['y'][-1], ball[2]['x'][-1])
+
+        plt.draw()
+        plt.pause(0.01)
+
+    def plot_appr(self, b):
+        self.appr_line[0].set_data([b[0]['ya']], [b[0]['xa']])
+        self.appr_line[1].set_data([b[1]['ya']], [b[1]['xa']])
+        self.appr_line[2].set_data([b[2]['ya']], [b[2]['xa']])
+
+        plt.draw()
+        plt.pause(0.01)
+
+    def plot_hit(self, x, y):
+        # Plot the hit points
+        circ = plt.Circle((y, x),
+                    self.param['ballR'], 
+                    color='k', linestyle='--',linewidth=2, fill=False)
+        self.ax.add_patch(circ)
+
+        plt.draw()
+        plt.pause(0.01)
+
+    def update(self):
+        plt.draw()
+        self.writer.grab_frame() 
+        plt.pause(0.01)
 
 def extract_events(SA, si, param):
     """
@@ -15,18 +109,9 @@ def extract_events(SA, si, param):
         param (dict): Parameters for extraction.
     """
 
-
-    # Initialize the plot
-    plt.ion()  # Turn on interactive mode
-    fig, ax = plt.subplots()
-    ball0_line, = ax.plot([], [], 'bo-', label='Ball 0')  # Line for Ball 0
-    appr_line, = ax.plot([], [], 'k+', label='Ball 0')  # Line for Ball 0
-    
-    ax.set_ylim(0, 2840)  # Set appropriate limits for your data
-    ax.set_xlim(0, 1420)
-    #show axis real size
-    ax.set_aspect('equal', adjustable='box')
-    ax.legend()
+    # Initiate Plot and video
+    ShotID = SA['Table'].iloc[si]['ShotID']
+    ps = plotshot(param, ShotID)
 
 
     b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA['Table'].iloc[si]['B1B2B3'])
@@ -39,18 +124,17 @@ def extract_events(SA, si, param):
     ball0 = [None]*3
     for bi in range(3):
         # Copy Route0 to Route
-        ball0[bi] = copy.deepcopy(SA['Shot'][si]['Route0'][bi])
+        ball0[bi] = copy.deepcopy(SA['Shot'][si]['Route'][bi])
         
     # Initialize ball positions
     ball = {bi: {'x': [], 'y': [], 't': []} for bi in range(3)}
     for bi in range(3):
-        ball[bi]['x'].append(SA['Shot'][si]['Route0'][bi]['x'][0])
-        ball[bi]['y'].append(SA['Shot'][si]['Route0'][bi]['y'][0])
+        ball[bi]['x'].append(SA['Shot'][si]['Route'][bi]['x'][0])
+        ball[bi]['y'].append(SA['Shot'][si]['Route'][bi]['y'][0])
         ball[bi]['t'].append(0.0)  # Initial time
 
     # Create common time points
     Tall0 = np.sort(np.unique(np.concatenate([b['t'] for b in ball0])))
-    ti = 0
     tvec = np.linspace(0.01, 1, 101)
 
     # Initialize hit structure
@@ -103,6 +187,7 @@ def extract_events(SA, si, param):
     # Initialize b as a list of dictionaries with required fields
     b = [{'vt1': 0.0, 'v1': [0.0, 0.0], 'v2': [0.0, 0.0], 'vt2': 0.0, 'xa': 0.0, 'ya': 0.0} for _ in range(3)]
 
+    ti = -1
     do_scan = True;
     while do_scan:
         ti += 1
@@ -158,28 +243,26 @@ def extract_events(SA, si, param):
                     # Use second element (index 1) of velocity arrays
                     b[bi]['v2'] = [ball0[bi]['vx'][1], ball0[bi]['vy'][1]]
                     
-                    # Calculate velocity magnitudes
-                    b[bi]['vt1'] = np.linalg.norm(b[bi]['v1'])
-                    b[bi]['vt2'] = np.linalg.norm(b[bi]['v2'])
+                # Calculate velocity magnitudes
+                b[bi]['vt1'] = np.linalg.norm(b[bi]['v1'])
+                b[bi]['vt2'] = np.linalg.norm(b[bi]['v2'])
 
-                    # Determine maximum velocity
-                    vtnext = max(b[bi]['vt1'], ball0[bi]['v'][0])
+                # Determine maximum velocity
+                vtnext = max(b[bi]['vt1'], ball0[bi]['v'][0])
 
-                    # Calculate normalized velocity vector
-                    if np.linalg.norm(b[bi]['v1']) > 1e-6:  # Avoid division by zero
-                        vnext = (np.array(b[bi]['v1']) / np.linalg.norm(b[bi]['v1'])) * vtnext
-                    else:
-                        vnext = np.array([0.0, 0.0])
+                # Calculate normalized velocity vector
+                if np.linalg.norm(b[bi]['v1']) > 1e-6:  # Avoid division by zero
+                    vnext = (np.array(b[bi]['v1']) / np.linalg.norm(b[bi]['v1'])) * vtnext
+                else:
+                    vnext = np.array([0.0, 0.0])
 
-                    # Approximate positions for next time steps
-                    b[bi]['xa'] = ball[bi]['x'][-1] + vnext[0] * dT * tvec
-                    b[bi]['ya'] = ball[bi]['y'][-1] + vnext[1] * dT * tvec
+                # Approximate positions for next time steps
+                b[bi]['xa'] = ball[bi]['x'][-1] + vnext[0] * dT * tvec
+                b[bi]['ya'] = ball[bi]['y'][-1] + vnext[1] * dT * tvec
 
-
+        ps.plot_appr(b)
         # Update the plot
-        appr_line.set_data([b[0]['ya']], [b[0]['xa']])
-        plt.draw()
-        plt.pause(0.01)  # Pause to update the plot
+        ps.plot(ball, b)
 
         # Calculate Ball trajectory angle change
         for bi in range(3):  # 0-based indexing for balls 0, 1, 2
@@ -300,28 +383,21 @@ def extract_events(SA, si, param):
             
             checkdist = False
             tc = 0.0
+              
+            if (np.any(dist_data <= 0) and np.any(dist_data > 0) and
+                (dist_data[0] >= 0 and dist_data[-1] < 0) or 
+                (dist_data[0] < 0 and dist_data[-1] >= 0)):
+                #Balls are going to be in contact or are already in contact. Previous contact not detected
+                checkdist = True
+                f = interp1d(dist_data, tappr, fill_value='extrapolate')
+                tc = float(f(0))
             
-            # Check distance crossing conditions
-            has_neg = np.any(dist_data <= 0)
-            has_pos = np.any(dist_data > 0)
-            
-            if has_neg and has_pos:
-                # Case 1: First and last elements show crossing
-                if ((dist_data[0] >= 0 and dist_data[-1] < 0) or 
-                    (dist_data[0] < 0 and dist_data[-1] >= 0)):
-                    checkdist = True
-                    f = interp1d(dist_data, tappr, fill_value='extrapolate')
-                    tc = float(f(0))
-                
-                # Case 2: Internal crossing points
-                else:
-                    sign_changes = np.diff(np.sign(dist_data)) != 0
-                    if np.any(sign_changes):
-                        ind = np.where(np.diff(dist_data) <= 0)[0]
-                        if len(ind) > 0:
-                            f = interp1d(dist_data[ind], tappr[ind], fill_value='extrapolate')
-                            tc = float(f(0))
-                            checkdist = True
+            elif (np.any(dist_data <= 0) and np.any(dist_data > 0)):
+                # here the ball-ball contact is going through the balls
+                checkdist = True
+                ind = np.where(np.diff(dist_data) <= 0)[0]
+                f = interp1d(dist_data[ind], tappr[ind], fill_value='extrapolate')
+                tc = float(f(0))
 
             # Angle checks (using modified angle_vector function)
             checkangle_b1 = (b[bx1]['a12'] > 10) or (b[bx1]['a12'] == -1)
@@ -338,11 +414,9 @@ def extract_events(SA, si, param):
 
             # Time collision check
             checkdouble = False
-            if checkdist:
-                last_hit_b1 = hit[bx1]['t'][-1] if hit[bx1]['t'] else -np.inf
-                last_hit_b2 = hit[bx2]['t'][-1] if hit[bx2]['t'] else -np.inf
-                checkdouble = (tc >= last_hit_b1 + 0.01) and (tc >= last_hit_b2 + 0.01)
-
+            if (tc >= hit[bx1]['t'][-1]+0.01) and (tc>= hit[bx1]['t'][-1]+0.01):
+                checkdouble = True
+            
             # Final collision check
             if checkdouble and checkdist:
                 # Create interpolators for both balls
@@ -370,52 +444,16 @@ def extract_events(SA, si, param):
                     float(interp_y2(tc))   # Y position
                 ])
 
-        for bbi in range(3):
-            bx1 = b1b2b3[BB[bbi][0]]
-            bx2 = b1b2b3[BB[bbi][1]]
-            dist = d[bbi]['BB']
-            
-            checkdist = False
-            tc = 0.0
 
-            # Check distance crossing conditions
-            if np.any(dist <= 0) and np.any(dist > 0):
-                # Check boundary crossing
-                if (dist[0] >= 0 and dist[-1] < 0) or (dist[0] < 0 and dist[-1] >= 0):
-                    checkdist = True
-                    f = interp1d(dist, tappr, fill_value='extrapolate')
-                    tc = float(f(0))
-                else:
-                    # Check internal crossings
-                    sign_changes = np.diff(dist) <= 0
-                    if np.any(sign_changes):
-                        ind = np.where(np.diff(dist) <= 0)[0]
-                        if len(ind) > 0:
-                            f = interp1d(dist[ind], tappr[ind], fill_value='extrapolate')
-                            tc = float(f(0))
-                            checkdist = True
 
-            # Check collision conditions
-            if checkdist:
-                # Time check
-                last_hit_b1 = hit[bx1]['t'][-1] if hit[bx1]['t'] else -np.inf
-                last_hit_b2 = hit[bx2]['t'][-1] if hit[bx2]['t'] else -np.inf
-                checkdouble = (tc >= last_hit_b1 + 0.01) and (tc >= last_hit_b2 + 0.01)
-
-                if checkdouble:
-                    # Add collision entries for both balls
-                    interp_x1 = interp1d(tappr, b[bx1]['xa'], fill_value='extrapolate')
-                    interp_y1 = interp1d(tappr, b[bx1]['ya'], fill_value='extrapolate')
-                    interp_x2 = interp1d(tappr, b[bx2]['xa'], fill_value='extrapolate')
-                    interp_y2 = interp1d(tappr, b[bx2]['ya'], fill_value='extrapolate')
-
-                    hitlist.append([tc, bx1, 1, bx2, float(interp_x1(tc)), float(interp_y1(tc))])
-                    hitlist.append([tc, bx2, 1, bx1, float(interp_x2(tc)), float(interp_y2(tc))])
-
-        # Handle missed collisions
-        if (len(hitlist) == 0 and 
+        # When Just before the Ball-Ball hit velocity is too small, then hit can be missed
+        # therefore we check whether B2 is moving without hit
+        # now only for first hit
+        # then we have to calculate the past hit
+        # Move back B1 so that B1 is touching B2
+        if (ti == 0 and 
             len(hit[b2i]['t']) == 1 and 
-            len(ball0[b1i]['t']) > 1 and 
+            not hitlist and
             ball0[b1i]['t'][1] >= ball0[b2i]['t'][1] and 
             (ball0[b2i]['x'][0] != ball0[b2i]['x'][1] or 
             ball0[b2i]['y'][0] != ball0[b2i]['y'][1])):
@@ -452,11 +490,14 @@ def extract_events(SA, si, param):
                 ball0[b2i]['y'][0]
             ])
 
-        # Check first timestep for missed ball-ball collisions
+        # Check first Time step for Ball-Ball hit
+        # if Balls are too close, so that the direction change is not visible,
+        # then the algorithm cant detect the Bal Ball hit. Therefore:
+        # Check whether B2 is moving with without hit
+        # If yes, then use the direction of B2, calculate the perpendicular
+        # direction and assign to B1
         if (ti == 1 and 
             not hitlist and 
-            len(ball0[b1i]['t']) > 1 and
-            len(ball0[b2i]['t']) > 1 and
             ball0[b1i]['t'][1] == ball0[b2i]['t'][1] and
             (ball0[b2i]['x'][0] != ball0[b2i]['x'][1] or 
             ball0[b2i]['y'][0] != ball0[b2i]['y'][1])):
@@ -502,6 +543,13 @@ def extract_events(SA, si, param):
 
 
 
+        # Assign new hit event or next timestep in to the ball route history
+        # if hit: replace current point with hit,
+        #     - add current point of ball0 to ball
+        #     - replace current point with new hit point
+        # otherwise
+        #     - add current point of ball0 to ball
+        #     - delete current point in ball0
         bi_list = [0, 1, 2]  # List of balls to check for hits
         # Check if hitlist exists and next time step is valid
         if hitlist and Tall0[1] >= tc:
@@ -564,6 +612,8 @@ def extract_events(SA, si, param):
                 hit[bi]['XPos'].append(hi[4])
                 hit[bi]['YPos'].append(hi[5])
 
+                ps.plot_hit(hi[4], hi[5])  # Plot hit point for Ball 0
+
 
             for bi in bi_list:
                 # Append current time to ball's history
@@ -586,6 +636,7 @@ def extract_events(SA, si, param):
                     ball0[bi]['t'][0] = Tall0[0]
                     ball0[bi]['x'][0] = x_pos
                     ball0[bi]['y'][0] = y_pos
+            
 
         else:
 
@@ -654,15 +705,11 @@ def extract_events(SA, si, param):
                 pass  # Optional: Add handling code here
                 # print(f'{bi}:{ind}')  # MATLAB-compatible output
 
-
-                # Update the plot
-        ball0_line.set_data(ball[0]['y'], ball[0]['x'])
-        ax.plot(hit[0]['YPos'][-1], hit[0]['XPos'][-1], 'ko', markersize=20)  # Plot hit point for Ball 0
-
-        plt.draw()
-        plt.pause(0.01)  # Pause to update the plot
-
+        ps.update()
         do_scan = len(Tall0) >= 3
+
+    ps.writer.finish()
+    ps.close()
 
     # Assign processed ball data back to SA structure
     for bi in range(3):  # 0-based indexing for 3 balls

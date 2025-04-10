@@ -52,13 +52,22 @@ def extract_b1b2b3_start(SA, param=None): # param added for consistency, but unu
                 processed_count += 1
                 # Call the function to determine B1B2B3 order
                 current_shot_data = SA['Shot'][si]
-                b1b2b3_result, err_info = extract_b1b2b3(current_shot_data)
+                b1b2b3_result, b1b2b3_num, err_info = extract_b1b2b3(current_shot_data)
 
                 if err_info['code'] is not None:
                     print(f"ShotIndex {si}: Error {err_info['code']} - {err_info['text']}")
                 # Update the table with the result
                 SA['Table'].loc[SA['Table'].index[si], varname] = b1b2b3_result
 
+                #correct for b2 and b3 the trajectory data so that time is added before the hit
+                for bi in range(1, 3):
+                    SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'] = \
+                        np.insert(SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'], 1, SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'][1] - 0.01)
+                    SA['Shot'][si]['Route'][b1b2b3_num[bi]]['x'] = \
+                        np.insert(SA['Shot'][si]['Route'][b1b2b3_num[bi]]['x'], 1, SA['Shot'][si]['Route'][b1b2b3_num[bi]]['x'][0])
+                    SA['Shot'][si]['Route'][b1b2b3_num[bi]]['y'] = \
+                        np.insert(SA['Shot'][si]['Route'][b1b2b3_num[bi]]['y'], 1, SA['Shot'][si]['Route'][b1b2b3_num[bi]]['y'][0])
+                    
                 # Update error info and selection status if an error occurred
                 if err_info['code'] is not None:
                     SA['Table'].loc[SA['Table'].index[si], 'ErrorID'] = err_info['code']

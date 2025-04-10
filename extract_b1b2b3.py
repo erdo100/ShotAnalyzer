@@ -26,6 +26,7 @@ def extract_b1b2b3(shot):
     # but helps determine the order. We'll use indices 0, 1, 2 instead.
     err = {'code': None, 'text': ''}
 
+    b1b2b3_num = np.array([0, 1, 2]) # Default order (0: White, 1: Yellow, 2: Red)
     col = 'WYR' # Represents Ball 0 (White), Ball 1 (Yellow), Ball 2 (Red)
 
     # Check if any ball has less than 2 data points
@@ -39,7 +40,7 @@ def extract_b1b2b3(shot):
         err['code'] = 2 # Error code from MATLAB
         # Using os.path.basename(__file__) is the Python equivalent of mfilename
         err['text'] = f'Empty Data ({os.path.basename(__file__)} Extract_b1b2b3.py)' # Adjusted filename
-        return b1b2b3, err # Corresponds to MATLAB's return
+        return b1b2b3, b1b2b3_num.tolist(), err # Corresponds to MATLAB's return
 
     # Get the time of the *second* point for each ball (index 1 in Python)
     # MATLAB: shot.Route(i).t(2) corresponds to shot['Route'][i-1]['t'][1]
@@ -88,11 +89,11 @@ def extract_b1b2b3(shot):
         if tb2i2 is None and tb3i2 is None and tb2i3 is None and tb3i3 is None:
             # Only B1 moved for sure, the initial sort is likely correct.
             b1b2b3 = "".join([col[i] for i in b1b2b3_num])
-            return b1b2b3, err
+            return b1b2b3, b1b2b3_num.tolist(), err
 
     else:
         b1b2b3 = col
-        return b1b2b3, err
+        return b1b2b3, b1b2b3_num.tolist(), err
 
 
     # Check if B1 and B2 moved, but B3 didn't (early on)
@@ -164,7 +165,7 @@ def extract_b1b2b3(shot):
         # Using os.path.basename(__file__) is the Python equivalent of mfilename
         err['text'] = f'all balls moved at same time  ({os.path.basename(__file__)} Extract_b1b2b3.py)'
         
-        return b1b2b3, err # Return the determined order and error status
+        return b1b2b3, b1b2b3_num.tolist(), err # Return the determined order and error status
 
     # The final b1b2b3 string is determined by the logic above.
-    return b1b2b3, err # Return the determined order and error status
+    return b1b2b3, b1b2b3_num.tolist(), err # Return the determined order and error status
