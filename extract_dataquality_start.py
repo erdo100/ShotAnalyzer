@@ -6,7 +6,7 @@ import warnings
 
 from delete_selected_shots import delete_selected_shots
 
-def extract_dataquality_start(SA, param):
+def extract_dataquality_start(self):
     """
     Performs data quality checks and corrections on shot data.
 
@@ -17,6 +17,8 @@ def extract_dataquality_start(SA, param):
         param (dict): Dictionary of parameters for table dimensions, tolerances, etc.
     """
     print(f'start ({os.path.basename(__file__)})') # Using file name
+    SA = self.SA
+    param = self.param
 
     if SA is None or 'Table' not in SA or SA['Table'] is None or 'Shot' not in SA:
         print("Error: SA structure is invalid or empty.")
@@ -400,5 +402,7 @@ def extract_dataquality_start(SA, param):
 
     print("\nRunning deletion of selected shots...")
     delete_selected_shots(SA) # Modify SA in place
+
+    self.SA = SA # Update the main SA structure with the modified one
 
     print(f'done ({os.path.basename(__file__)})')

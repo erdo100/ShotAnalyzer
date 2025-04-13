@@ -7,10 +7,12 @@ from tkinter import ttk
 import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from read_gamefile import read_gamefile  # Assuming this is your custom module
-from extract_shotdata_start import extract_shotdata_start  # Assuming this is your custom module
-from extract_events_start import plot_debug
+from read_gamefile import read_gamefile  
 from plot_shot import plot_shot
+from extract_dataquality_start import extract_dataquality_start
+from extract_b1b2b3_start import extract_b1b2b3_start
+from extract_events_start import extract_events_start
+from extract_shotdata_start import extract_shotdata_start
 
 class DataFrameViewer:
     def __init__(self, root):
@@ -72,6 +74,15 @@ class DataFrameViewer:
         edit_menu.add_command(label="Delete Selected Rows", command=self.delete_selected_rows)
         menubar.add_cascade(label="Edit", menu=edit_menu)
         
+        # Existing Analyse menu
+        analyze_menu = tk.Menu(menubar, tearoff=0)
+        analyze_menu.add_command(label="Quality Check", command=lambda: extract_dataquality_start(self))
+        analyze_menu.add_command(label="Identify B1-B2-B3", command=lambda: extract_b1b2b3_start(self))
+        analyze_menu.add_command(label="Extract Events", command=lambda: extract_events_start(self))
+        analyze_menu.add_command(label="Run All", command=lambda: extract_shotdata_start(self))
+        
+        menubar.add_cascade(label="Analyze", menu=analyze_menu)
+
         self.root.config(menu=menubar)
 
     def load_gamefile(self):
@@ -145,20 +156,6 @@ class DataFrameViewer:
         self.tree.bind('<Button-1>', self.on_click)
         self.refresh_table()
 
-    def setup_menu(self):
-        menubar = tk.Menu(self.root)
-        
-        # File menu
-        file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Load Gamefile", command=self.load_gamefile)
-        menubar.add_cascade(label="File", menu=file_menu)
-        
-        # Edit menu
-        edit_menu = tk.Menu(menubar, tearoff=0)
-        edit_menu.add_command(label="Delete Selected Rows", command=self.delete_selected_rows)
-        menubar.add_cascade(label="Edit", menu=edit_menu)
-        
-        self.root.config(menu=menubar)  # Critical line to show the menu
 
     def on_tree_select(self, event):
         selected_item = self.tree.selection()

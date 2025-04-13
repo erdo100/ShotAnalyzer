@@ -10,7 +10,7 @@ from extract_b1b2b3 import extract_b1b2b3
 # Translated function from Extract_b1b2b3_start.m
 # Needs the main data structure SA (containing 'Shot' list and 'Table' DataFrame)
 # and param dictionary (though param seems unused in the MATLAB version of this specific function)
-def extract_b1b2b3_start(SA, param=None): # param added for consistency, but unused here
+def extract_b1b2b3_start(self): # param added for consistency, but unused here
     """
     Iterates through shots, determines the B1B2B3 order using extract_b1b2b3,
     and updates the SA['Table'].
@@ -20,6 +20,9 @@ def extract_b1b2b3_start(SA, param=None): # param added for consistency, but unu
         param (dict): Parameters dictionary (unused in this function's core logic).
     """
     print(f'start ({os.path.basename(__file__)} calling extract_b1b2b3)') # Indicate function start
+
+    SA = self.SA
+    param = self.param
 
     if SA is None or 'Table' not in SA or SA['Table'] is None or 'Shot' not in SA:
         print("Error: SA structure is invalid or empty.")

@@ -16,10 +16,10 @@ class plot_shot:
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         # Setup axes and menu
-        self.ax = self.fig.add_subplot(111)
-        self._setup_axes()
-        self._initialize_balls()
         self._setup_menu()
+        self.ax = self.fig.add_subplot(111)
+        self._initialize_balls()
+        self._setup_axes()
         
         # Close handling
         self.master.protocol("WM_DELETE_WINDOW", self.close)
@@ -31,7 +31,7 @@ class plot_shot:
         self.ax.set_yticks(np.linspace(0, self.param['size'][1], 9))
         self.ax.set_xticks(np.linspace(0, self.param['size'][0], 5))
         self.ax.grid(True, linestyle='--', linewidth=0.8, color='gray')
-        self.ax.set_facecolor((0.95, 0.95, 0.95))
+        self.ax.set_facecolor((0.4, 0.4, 1.0))
         self.ax.set_xticklabels([])
         self.ax.set_yticklabels([])
         self.ax.tick_params(axis='both', which='both', length=0)
@@ -68,17 +68,17 @@ class plot_shot:
 
     def _initialize_balls(self):
         self.ball_line = {}
-        self.ball_line[0], = self.ax.plot([], [], 'wo-', label='Ball 0')
-        self.ball_line[1], = self.ax.plot([], [], 'yo-', label='Ball 1')
-        self.ball_line[2], = self.ax.plot([], [], 'ro-', label='Ball 2')
+        self.ball_line[0], = self.ax.plot([], [], 'w-', label='Ball 0')
+        self.ball_line[1], = self.ax.plot([], [], 'y-', label='Ball 1')
+        self.ball_line[2], = self.ax.plot([], [], 'r-', label='Ball 2')
 
         self.ball_circ = {}
         self.ball_circ[0] = plt.Circle((200, 220), self.param['ballR'], 
-                                     color='w', linewidth=2, fill=False)
+                                     color='w', linewidth=2, fill=True)
         self.ball_circ[1] = plt.Circle((100, 500), self.param['ballR'], 
-                                     color='y', linewidth=2, fill=False)
+                                     color='y', linewidth=2, fill=True)
         self.ball_circ[2] = plt.Circle((800, 1000), self.param['ballR'], 
-                                     color='r', linewidth=2, fill=False)
+                                     color='r', linewidth=2, fill=True)
 
         for circ in self.ball_circ.values():
             self.ax.add_patch(circ)
