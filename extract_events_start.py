@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import FFMpegWriter  # For MP4
 
-class plotshot:
+class plot_debug:
     def __init__(self, param, ShotID):
         self.param = param
         # Initialize the plot
@@ -137,12 +137,14 @@ def extract_events(SA, si, param, plotflag=False):
     Args:
         SA (object): Shot Analyzer object containing shot data.
         param (dict): Parameters for extraction.
+        plotflag (bool): Whether to enable plotting.
     """
 
     # Initiate Plot and video
     ShotID = SA['Table'].iloc[si]['ShotID']
+    ps = None
     if plotflag:
-        ps = plotshot(param, ShotID)
+        ps = plot_debug(param, ShotID)
 
 
     b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA['Table'].iloc[si]['B1B2B3'])

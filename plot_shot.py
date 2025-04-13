@@ -1,0 +1,102 @@
+from matplotlib.figure import Figure
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import tkinter as tk
+import numpy as np
+
+class plot_shot:
+    def __init__(self, param, master=None):
+        self.param = param
+        self.master = master or tk.Toplevel()
+        self.master.title("Shot Visualization")
+        
+        # Create figure and canvas
+        self.fig = Figure(figsize=(7, 12))
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        
+        # Setup axes and menu
+        self.ax = self.fig.add_subplot(111)
+        self._setup_axes()
+        self._initialize_balls()
+        self._setup_menu()
+        
+        # Close handling
+        self.master.protocol("WM_DELETE_WINDOW", self.close)
+
+    def _setup_axes(self):
+        self.ax.set_ylim(0, 2840)
+        self.ax.set_xlim(0, 1420)
+        self.ax.set_aspect('equal', adjustable='box')
+        self.ax.set_yticks(np.linspace(0, self.param['size'][1], 9))
+        self.ax.set_xticks(np.linspace(0, self.param['size'][0], 5))
+        self.ax.grid(True, linestyle='--', linewidth=0.8, color='gray')
+        self.ax.set_facecolor((0.95, 0.95, 0.95))
+        self.ax.set_xticklabels([])
+        self.ax.set_yticklabels([])
+        self.ax.tick_params(axis='both', which='both', length=0)
+
+    def _setup_menu(self):
+        menubar = tk.Menu(self.master)
+        
+        # White ball menu
+        white_menu = tk.Menu(menubar, tearoff=0)
+        for option in ['ball line', 'markers', 'ghost ball', 'start position', 'current position']:
+            white_menu.add_command(label=option, 
+                                 command=lambda o=option: self._menu_handler('white', o))
+        
+        # Yellow ball menu
+        yellow_menu = tk.Menu(menubar, tearoff=0)
+        for option in ['ball line', 'markers', 'ghost ball', 'start position', 'current position']:
+            yellow_menu.add_command(label=option, 
+                                  command=lambda o=option: self._menu_handler('yellow', o))
+        
+        # Red ball menu
+        red_menu = tk.Menu(menubar, tearoff=0)
+        for option in ['ball line', 'markers', 'ghost ball', 'start position', 'current position']:
+            red_menu.add_command(label=option, 
+                               command=lambda o=option: self._menu_handler('red', o))
+
+        menubar.add_cascade(label="Plot White", menu=white_menu)
+        menubar.add_cascade(label="Plot Yellow", menu=yellow_menu)
+        menubar.add_cascade(label="Plot Red", menu=red_menu)
+
+        self.master.config(menu=menubar)
+
+    def _menu_handler(self, color, option):
+        print(f"Menu selection: {color} - {option}")
+
+    def _initialize_balls(self):
+        self.ball_line = {}
+        self.ball_line[0], = self.ax.plot([], [], 'wo-', label='Ball 0')
+        self.ball_line[1], = self.ax.plot([], [], 'yo-', label='Ball 1')
+        self.ball_line[2], = self.ax.plot([], [], 'ro-', label='Ball 2')
+
+        self.ball_circ = {}
+        self.ball_circ[0] = plt.Circle((200, 220), self.param['ballR'], 
+                                     color='w', linewidth=2, fill=False)
+        self.ball_circ[1] = plt.Circle((100, 500), self.param['ballR'], 
+                                     color='y', linewidth=2, fill=False)
+        self.ball_circ[2] = plt.Circle((800, 1000), self.param['ballR'], 
+                                     color='r', linewidth=2, fill=False)
+
+        for circ in self.ball_circ.values():
+            self.ax.add_patch(circ)
+
+    def plot(self, ball):
+        # Update existing plot elements
+        self.ball_line[0].set_data(ball[0]['y'], ball[0]['x'])
+        self.ball_line[1].set_data(ball[1]['y'], ball[1]['x'])
+        self.ball_line[2].set_data(ball[2]['y'], ball[2]['x'])
+
+        self.ball_circ[0].center = (ball[0]['y'][-1], ball[0]['x'][-1])
+        self.ball_circ[1].center = (ball[1]['y'][-1], ball[1]['x'][-1])
+        self.ball_circ[2].center = (ball[2]['y'][-1], ball[2]['x'][-1])
+        self.canvas.draw_idle()
+
+    def update(self):
+        self.canvas.draw_idle()
+
+
+    def close(self):
+        self.master.destroy()

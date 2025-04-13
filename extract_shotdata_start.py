@@ -61,7 +61,7 @@ def extract_shotdata_start(filepath):
 
     # Step 4: Extract events (Placeholder)
     print("Extracting events...")
-    extract_events_start(SA, param)
+    extract_events_start(SA, param, plotflag=True)  # Enable plotting by setting plotflag to True
 
     print("Shot data extraction process completed.")
 
