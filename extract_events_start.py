@@ -1,6 +1,8 @@
 import numpy as np
 import copy
 from scipy.interpolate import interp1d
+import os
+import matplotlib.pyplot as plt
 
 from str2num_b1b2b3 import str2num_b1b2b3
 from angle_vector import angle_vector
@@ -100,7 +102,35 @@ class plotshot:
         self.writer.grab_frame() 
         plt.pause(0.01)
 
-def extract_events(SA, si, param):
+
+def extract_events_start(SA, param=None): # param added for consistency, but unused here
+    """Extract all ball-ball hit events and ball-Cushion hit events
+    """
+    print(f'start ({os.path.basename(__file__)} calling extract_b1b2b3)') # Indicate function start
+    num_shots = len(SA['Table'])
+    if num_shots == 0:
+        print("No shots to process for B1B2B3 extraction.")
+        return
+
+    if num_shots != len(SA['Shot']):
+         print(f"Warning: Mismatch between Table rows ({num_shots}) and Shot entries ({len(SA['Shot'])}).")
+         num_shots = min(num_shots, len(SA['Shot'])) # Process only matching entries
+
+    err = {'code': None, 'text': ''}
+
+    # Iterate through shots using the DataFrame index
+    for si, current_shot_id in enumerate(SA['Table']['ShotID']):
+        print(f"Processing shot index {si} (ShotID: {current_shot_id})...")
+
+        b1b2b3_num, b1i, b2i, b3i = str2num_b1b2b3(SA['Table'].iloc[si]['B1B2B3'])
+        
+        # extract all events
+        extract_events(SA, si, param)
+        print(f"Hit data extracted for shot index {si}.")
+
+
+        
+def extract_events(SA, si, param, plotflag=False):
     """
     Extract events from the shot data.
 
@@ -111,7 +141,8 @@ def extract_events(SA, si, param):
 
     # Initiate Plot and video
     ShotID = SA['Table'].iloc[si]['ShotID']
-    ps = plotshot(param, ShotID)
+    if plotflag:
+        ps = plotshot(param, ShotID)
 
 
     b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA['Table'].iloc[si]['B1B2B3'])
@@ -260,9 +291,10 @@ def extract_events(SA, si, param):
                 b[bi]['xa'] = ball[bi]['x'][-1] + vnext[0] * dT * tvec
                 b[bi]['ya'] = ball[bi]['y'][-1] + vnext[1] * dT * tvec
 
-        ps.plot_appr(b)
-        # Update the plot
-        ps.plot(ball, b)
+        if plotflag:
+            ps.plot_appr(b)
+            # Update the plot
+            ps.plot(ball, b)
 
         # Calculate Ball trajectory angle change
         for bi in range(3):  # 0-based indexing for balls 0, 1, 2
@@ -612,7 +644,8 @@ def extract_events(SA, si, param):
                 hit[bi]['XPos'].append(hi[4])
                 hit[bi]['YPos'].append(hi[5])
 
-                ps.plot_hit(hi[4], hi[5])  # Plot hit point for Ball 0
+                if plotflag:
+                    ps.plot_hit(hi[4], hi[5])  # Plot hit point for Ball 0
 
 
             for bi in bi_list:
@@ -705,11 +738,16 @@ def extract_events(SA, si, param):
                 pass  # Optional: Add handling code here
                 # print(f'{bi}:{ind}')  # MATLAB-compatible output
 
-        ps.update()
+        if plotflag:
+            ps.update()
         do_scan = len(Tall0) >= 3
 
-    ps.writer.finish()
-    ps.close()
+    # save back to SA structure
+    SA['Shot'][si]["hit"] = hit  # Initialize Route list
+    
+    if plotflag:
+        ps.writer.finish()
+        ps.close()
 
     # Assign processed ball data back to SA structure
     for bi in range(3):  # 0-based indexing for 3 balls
