@@ -111,7 +111,23 @@ class DataFrameViewer:
 
     def load_gamefile(self):
         print("Menu click Load Gamefile")
-        pass
+        # Load SA using pickle from disk using filepicker
+        filepath = filedialog.askopenfilename(defaultextension=".sapy", 
+                                                filetypes=[("Shot Analyzer files", "*.sapy")])
+        if not filepath:
+            return
+        try:
+            # Load the SA structure from a file using pickle
+            with open(filepath, 'rb') as f:
+                self.SA = pickle.load(f)
+            
+            # Update and refresh table
+            self.refresh_table()
+            messagebox.showinfo("Success", "Gamefile loaded successfully.")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load gamefile:\n{str(e)}")
+        
 
     def save_gamefile(self):
 
