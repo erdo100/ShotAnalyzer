@@ -405,4 +405,6 @@ def extract_dataquality_start(self):
 
     self.SA = SA # Update the main SA structure with the modified one
 
+    self.refresh_table() # Refresh the table to reflect changes
+    
     print(f'done ({os.path.basename(__file__)})')

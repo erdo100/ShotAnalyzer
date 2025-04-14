@@ -111,5 +111,7 @@ def extract_b1b2b3_start(self): # param added for consistency, but unused here
     print("\nRunning deletion of selected shots...")
     delete_selected_shots(SA) # Modify SA in place
 
+    self.refresh_table() # Refresh the table to reflect changes
+
     print(f'done ({os.path.basename(__file__)} finished extract_b1b2b3_start)')
 

@@ -103,10 +103,14 @@ class plot_debug:
         plt.pause(0.01)
 
 
-def extract_events_start(SA, param=None): # param added for consistency, but unused here
+def extract_events_start(self): # param added for consistency, but unused here
     """Extract all ball-ball hit events and ball-Cushion hit events
     """
     print(f'start ({os.path.basename(__file__)} calling extract_b1b2b3)') # Indicate function start
+
+    SA = self.SA
+    param = self.param
+
     num_shots = len(SA['Table'])
     if num_shots == 0:
         print("No shots to process for B1B2B3 extraction.")
@@ -118,16 +122,23 @@ def extract_events_start(SA, param=None): # param added for consistency, but unu
 
     err = {'code': None, 'text': ''}
 
+    # Check if 'B1hit' column exists in the DataFrame
+    if 'B1hit' not in SA['Table'].columns:
+        SA['Table']['B1hit'] = ''
+        SA['Table']['B2hit'] = ''
+        SA['Table']['B3hit'] = ''
+
     # Iterate through shots using the DataFrame index
     for si, current_shot_id in enumerate(SA['Table']['ShotID']):
         print(f"Processing shot index {si} (ShotID: {current_shot_id})...")
 
-        b1b2b3_num, b1i, b2i, b3i = str2num_b1b2b3(SA['Table'].iloc[si]['B1B2B3'])
-        
         # extract all events
         extract_events(SA, si, param)
         print(f"Hit data extracted for shot index {si}.")
 
+    self.SA = SA
+
+    self.refresh_table()
 
         
 def extract_events(SA, si, param, plotflag=False):
@@ -746,6 +757,11 @@ def extract_events(SA, si, param, plotflag=False):
 
     # save back to SA structure
     SA['Shot'][si]["hit"] = hit  # Initialize Route list
+
+    # Save hitwith data to SA Table. use columns B1hit, B2hit, B3hit. create single string for one ball
+    SA['Table'].at[si, 'B1hit'] = ''.join(hit[b1i]['with'])
+    SA['Table'].at[si, 'B2hit'] = ''.join(hit[b2i]['with'])
+    SA['Table'].at[si, 'B3hit'] = ''.join(hit[b3i]['with'])
     
     if plotflag:
         ps.writer.finish()
@@ -756,3 +772,5 @@ def extract_events(SA, si, param, plotflag=False):
         SA['Shot'][si]['Route'][bi]['t'] = ball[bi]['t']
         SA['Shot'][si]['Route'][bi]['x'] = ball[bi]['x']
         SA['Shot'][si]['Route'][bi]['y'] = ball[bi]['y']
+
+    return SA  # Return updated SA and error structure

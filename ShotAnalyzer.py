@@ -5,6 +5,7 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 import pandas as pd
+import pickle
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from read_gamefile import read_gamefile  
@@ -42,11 +43,12 @@ class DataFrameViewer:
             "MaxVelocity": 12000,               # Used
             "timax_appr": 5,                    # Not used in translated code
         }
-        self.column_structure = ['Selected', 'ShotID', 'Mirrored', 'Filename', 
-                            'GameType', 'Interpreted', 'Player', 'ErrorID', 'ErrorText', 'Set', 
-                            'CurrentInning', 'CurrentSeries', 'CurrentTotalPoints', 'Point']
-        self.df = pd.DataFrame(columns=self.column_structure)
-        self.SA = None
+
+        self.SA = {}
+
+        # create empty dataframe in SA["Table"]
+        self.SA["Table"] = pd.DataFrame(columns=[])
+
         self.tree = None
         self.setup_ui()
         self.setup_menu()
@@ -66,7 +68,10 @@ class DataFrameViewer:
         
         # New File menu
         file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Load JSON gamefile", command=self.load_jsonfile)
         file_menu.add_command(label="Load Gamefile", command=self.load_gamefile)
+        file_menu.add_command(label="Save Gamefile", command=self.save_gamefile)
+        file_menu.add_command(label="Export to CSV", command=self.export_csv)
         menubar.add_cascade(label="File", menu=file_menu)
         
         # Existing Edit menu
@@ -85,7 +90,7 @@ class DataFrameViewer:
 
         self.root.config(menu=menubar)
 
-    def load_gamefile(self):
+    def load_jsonfile(self):
         filepath = filedialog.askopenfilename(
             title="Select Gamefile",
             filetypes=[("Game files", "*.txt *.csv"), ("All files", "*.*")]
@@ -97,30 +102,62 @@ class DataFrameViewer:
         try:
             # Call the function directly
             self.SA = read_gamefile(filepath)
-            #extract_shotdata_start(filepath)  # Store the entire SA structure
-            
-            # Extract the table from SA
-            new_df = self.SA["Table"]
-            
-            # Validate columns
-            if list(new_df.columns) != self.column_structure:
-                raise ValueError("Loaded data columns don't match expected structure")
             
             # Update and refresh
-            self.df = new_df
             self.refresh_table()
             
-        except KeyError:
-            messagebox.showerror("Error", "SA structure missing 'Table' key")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load gamefile:\n{str(e)}")
+
+    def load_gamefile(self):
+        print("Menu click Load Gamefile")
+        pass
+
+    def save_gamefile(self):
+
+        #save SA using pickle to disk using filepicker
+        filepath = filedialog.asksaveasfilename(defaultextension=".sapy", 
+                                                filetypes=[("Shot Analyzer files", "*.sapy")])
+        if not filepath:
+            return
+        try:
+            # Save the SA structure to a file using pickle
+            with open(filepath, 'wb') as f:
+                pickle.dump(self.SA, f)
+            messagebox.showinfo("Success", "Gamefile exported successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export gamefile:\n{str(e)}") 
+
+    def export_csv(self):
+        print("Menu click Export CSV")
+        pass
+
     def refresh_table(self):
         # Clear existing items
         for item in self.tree.get_children():
             self.tree.delete(item)
-            
+        
+        # Get current columns from the DataFrame
+        current_columns = self.SA["Table"].columns.tolist()
+        
+        # Reconfigure the Treeview columns
+        self.tree["columns"] = ["Select"] + current_columns
+        
+        # Clear existing headings and columns
+        for col in self.tree["columns"]:
+            self.tree.heading(col, text="")
+            self.tree.column(col, width=0)
+        
+        # Set new headings and column configurations
+        self.tree.heading("Select", text="Select")
+        self.tree.column("Select", width=50, anchor="center")
+        
+        for col in current_columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=100, anchor="center")
+        
         # Populate with new data
-        for idx, row in self.df.iterrows():
+        for idx, row in self.SA["Table"].iterrows():
             values = ['☐'] + list(row)
             self.tree.insert('', 'end', values=values, tags=(idx,))
 
@@ -131,20 +168,12 @@ class DataFrameViewer:
         frame = ttk.Frame(self.root)
         frame.pack(fill=tk.BOTH, expand=True)
         
+        # Initialize the Treeview with columns based on the initial empty DataFrame
+        column_structure = self.SA["Table"].columns.tolist()
         self.tree = ttk.Treeview(
-            frame, columns=('Select',) + tuple(self.column_structure), show='headings'
+            frame, columns=('Select',) + tuple(column_structure), show='headings'
         )
         
-        # Configure headings
-        self.tree.heading('Select', text='Select')
-        for col in self.column_structure:
-            self.tree.heading(col, text=col)
-            
-        # Configure columns
-        self.tree.column('Select', width=50, anchor='center')
-        for col in self.column_structure:
-            self.tree.column(col, width=100, anchor='center')
-            
         # Scrollbars
         vsb = ttk.Scrollbar(frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(frame, orient="horizontal", command=self.tree.xview)
@@ -154,6 +183,8 @@ class DataFrameViewer:
         hsb.pack(side='bottom', fill='x')
         self.tree.pack(fill=tk.BOTH, expand=True)
         self.tree.bind('<Button-1>', self.on_click)
+        
+        # Initial call to refresh_table to set up headings and columns
         self.refresh_table()
 
 
@@ -192,7 +223,7 @@ class DataFrameViewer:
     def plot_row(self, item):
         tags = self.tree.item(item, 'tags')
         idx = int(tags[0])
-        row_data = self.df.loc[idx]
+        #row_data = self.SA["Table"].loc[idx]
 
         # Get and plot current shot data
         current_shot = self.SA["Shot"][idx]["Route"]
