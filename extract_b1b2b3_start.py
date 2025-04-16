@@ -65,7 +65,7 @@ def extract_b1b2b3_start(self): # param added for consistency, but unused here
                 #correct for b2 and b3 the trajectory data so that time is added before the hit
                 for bi in range(1, 3):
                     SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'] = \
-                        np.insert(SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'], 1, SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'][1] - 0.01)
+                        np.insert(SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'], 1, SA['Shot'][si]['Route'][b1b2b3_num[bi]]['t'][1] - 0.0001)
                     SA['Shot'][si]['Route'][b1b2b3_num[bi]]['x'] = \
                         np.insert(SA['Shot'][si]['Route'][b1b2b3_num[bi]]['x'], 1, SA['Shot'][si]['Route'][b1b2b3_num[bi]]['x'][0])
                     SA['Shot'][si]['Route'][b1b2b3_num[bi]]['y'] = \

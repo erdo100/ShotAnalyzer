@@ -612,7 +612,23 @@ def extract_events(SA, si, param, plotflag=False):
                 
                 if hit_count > 1:
                     raise ValueError(f"Ball {bi} has {hit_count} hits at same time")
-                    
+            
+            # for both balls other than B1 we had added 1 timestep to avoid velocity in steady 
+            # case until first ball hit. Therefore we have to delete the 2nd time step 
+            # the 2nd time step it must be deleted when it is after the first ball-ball hit 
+            # after deleting the 2nd time step, check whether the new 2nd time step is after the current hit time
+            
+            for hi in [h for h in hitlist if h[0] == tc]:
+                bi = hi[1]  # Ball index from hit data
+                for bxi in [b2i, b3i]:
+                    if (bi == bxi) and len(hit[bi]['with']) == 1 and ball0[bi]['t'][1] > tc:
+                        # Remove the 2nd time step
+                        ball0[bi]['t'] = np.delete(ball0[bi]['t'], 1)
+                        ball0[bi]['x'] = np.delete(ball0[bi]['x'], 1)
+                        ball0[bi]['y'] = np.delete(ball0[bi]['y'], 1)
+                
+
+
             # Process hits occurring at current collision time (tc)
             for hi in [h for h in hitlist if h[0] == tc]:
                 bi = hi[1]  # Ball index from hit data
@@ -651,7 +667,7 @@ def extract_events(SA, si, param, plotflag=False):
                 if hi[2] == 1:  # Ball-ball collision
                     # Assuming 'col' maps to ball identifiers (e.g. 'WYR')
                     hit[bi]['with'].append('WYR'[hi[3]])
-                elif hit[2] == 2:  # Cushion collision
+                elif hi[2] == 2:  # Cushion collision
                     hit[bi]['with'].append(str(hi[3]))
                 
                 hit[bi]['XPos'].append(hi[4])
