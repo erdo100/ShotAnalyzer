@@ -25,11 +25,12 @@ class plot_shot:
         self.master.protocol("WM_DELETE_WINDOW", self.close)
 
     def _setup_axes(self):
-        self.ax.set_ylim(0, 2.840)
-        self.ax.set_xlim(0, 1.420)
+        self.ax.set_xlim(0, self.param['size'][0])
+        self.ax.set_ylim(0, self.param['size'][1])
+        self.ax.set_xlabel('X-axis (m)')
         self.ax.set_aspect('equal', adjustable='box')
-        self.ax.set_yticks(np.linspace(0, self.param['size'][1], 9))
         self.ax.set_xticks(np.linspace(0, self.param['size'][0], 5))
+        self.ax.set_yticks(np.linspace(0, self.param['size'][1], 9))
         self.ax.grid(True, linestyle='--', linewidth=0.8, color='gray')
         self.ax.set_facecolor((0.4, 0.4, 1.0))
         self.ax.set_xticklabels([])
@@ -85,13 +86,13 @@ class plot_shot:
 
     def plot(self, ball):
         # Update existing plot elements
-        self.ball_line[0].set_data(ball[0]['y'], ball[0]['x'])
-        self.ball_line[1].set_data(ball[1]['y'], ball[1]['x'])
-        self.ball_line[2].set_data(ball[2]['y'], ball[2]['x'])
+        self.ball_line[0].set_data(ball[0]['x'], ball[0]['y'])
+        self.ball_line[1].set_data(ball[1]['x'], ball[1]['y'])
+        self.ball_line[2].set_data(ball[2]['x'], ball[2]['y'])
 
-        self.ball_circ[0].center = (ball[0]['y'][-1], ball[0]['x'][-1])
-        self.ball_circ[1].center = (ball[1]['y'][-1], ball[1]['x'][-1])
-        self.ball_circ[2].center = (ball[2]['y'][-1], ball[2]['x'][-1])
+        self.ball_circ[0].center = (ball[0]['x'][-1], ball[0]['y'][-1])
+        self.ball_circ[1].center = (ball[1]['x'][-1], ball[1]['y'][-1])
+        self.ball_circ[2].center = (ball[2]['x'][-1], ball[2]['y'][-1])
         self.canvas.draw_idle()
 
     def update(self):
