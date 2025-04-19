@@ -25,8 +25,8 @@ class plot_shot:
         self.master.protocol("WM_DELETE_WINDOW", self.close)
 
     def _setup_axes(self):
-        self.ax.set_ylim(0, 2840)
-        self.ax.set_xlim(0, 1420)
+        self.ax.set_ylim(0, 2.840)
+        self.ax.set_xlim(0, 1.420)
         self.ax.set_aspect('equal', adjustable='box')
         self.ax.set_yticks(np.linspace(0, self.param['size'][1], 9))
         self.ax.set_xticks(np.linspace(0, self.param['size'][0], 5))
@@ -73,11 +73,11 @@ class plot_shot:
         self.ball_line[2], = self.ax.plot([], [], 'r-', label='Ball 2')
 
         self.ball_circ = {}
-        self.ball_circ[0] = plt.Circle((200, 220), self.param['ballR'], 
+        self.ball_circ[0] = plt.Circle((0.200, 0.220), self.param['ballR'], 
                                      color='w', linewidth=2, fill=True)
-        self.ball_circ[1] = plt.Circle((100, 500), self.param['ballR'], 
+        self.ball_circ[1] = plt.Circle((0.100, 0.500), self.param['ballR'], 
                                      color='y', linewidth=2, fill=True)
-        self.ball_circ[2] = plt.Circle((800, 1000), self.param['ballR'], 
+        self.ball_circ[2] = plt.Circle((0.800, 1.000), self.param['ballR'], 
                                      color='r', linewidth=2, fill=True)
 
         for circ in self.ball_circ.values():

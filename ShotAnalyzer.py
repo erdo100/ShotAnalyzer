@@ -23,31 +23,31 @@ class DataFrameViewer:
             "ver": "Shot Analyzer v0.43i_Python",
             # Assuming [height, width] based on typical usage, but MATLAB code suggested [Y, X] -> [1420, 2840]
             # Let's stick to MATLAB's apparent [height, width] based on index usage (size(1)=y, size(2)=x)
-            "size": [1420, 2840],
-            "ballR": 61.5 / 2,
+            "size": [1.420, 2.840],
+            "ballR": 61.5 / 2000,
             # 'ballcirc' not directly used in translated functions, kept for reference
             "ballcirc": {
-                "x": np.sin(np.linspace(0, 2 * np.pi, 36)) * (61.5 / 2),
-                "y": np.cos(np.linspace(0, 2 * np.pi, 36)) * (61.5 / 2),
+                "x": np.sin(np.linspace(0, 2 * np.pi, 36)) * (61.5 / 2000),
+                "y": np.cos(np.linspace(0, 2 * np.pi, 36)) * (61.5 / 2000),
             },
             "rdiam": 7,
-            "cushionwidth": 50,
-            "diamdist": 97,
-            "framewidth": 147,
+            "cushionwidth": 0.050,
+            "diamdist": 0.097,
+            "framewidth": 0.147,
             "colors": "wyr",
-            "BallOutOfTableDetectionLimit": 30, # Used in commented MATLAB code
-            "BallCushionHitDetectionRange": 50, # Not used in translated code
-            "BallProjecttoCushionLimit": 10,   # Not used in translated code (clipping used instead)
-            "NoDataDistanceDetectionLimit": 600, # Used
-            "MaxTravelDistancePerDt": 0.1,      # Not used in translated code
-            "MaxVelocity": 12000,               # Used
+            "BallOutOfTableDetectionLimit": 0.030, # Used in commented MATLAB code
+            "BallCushionHitDetectionRange": 0.050, # Not used in translated code
+            "BallProjecttoCushionLimit": 0.010,   # Not used in translated code (clipping used instead)
+            "NoDataDistanceDetectionLimit": 0.600, # Used
+            "MaxTravelDistancePerDt": 0.0001,      # Not used in translated code
+            "MaxVelocity": 12,               # Used
             "timax_appr": 5,                    # Not used in translated code
         }
 
         self.SA = {}
 
-        # create empty dataframe in SA["Table"]
-        self.SA["Table"] = pd.DataFrame(columns=[])
+        # create empty dataframe in SA['Data']
+        self.SA['Data'] = pd.DataFrame(columns=[])
 
         self.tree = None
         self.setup_ui()
@@ -110,7 +110,6 @@ class DataFrameViewer:
             messagebox.showerror("Error", f"Failed to load gamefile:\n{str(e)}")
 
     def load_gamefile(self):
-        print("Menu click Load Gamefile")
         # Load SA using pickle from disk using filepicker
         filepath = filedialog.askopenfilename(defaultextension=".sapy", 
                                                 filetypes=[("Shot Analyzer files", "*.sapy")])
@@ -154,7 +153,7 @@ class DataFrameViewer:
             self.tree.delete(item)
         
         # Get current columns from the DataFrame
-        current_columns = self.SA["Table"].columns.tolist()
+        current_columns = self.SA['Data'].columns.tolist()
         
         # Reconfigure the Treeview columns
         self.tree["columns"] = ["Select"] + current_columns
@@ -173,7 +172,7 @@ class DataFrameViewer:
             self.tree.column(col, width=100, anchor="center")
         
         # Populate with new data
-        for idx, row in self.SA["Table"].iterrows():
+        for idx, row in self.SA['Data'].iterrows():
             values = ['☐'] + list(row)
             self.tree.insert('', 'end', values=values, tags=(idx,))
 
@@ -185,7 +184,7 @@ class DataFrameViewer:
         frame.pack(fill=tk.BOTH, expand=True)
         
         # Initialize the Treeview with columns based on the initial empty DataFrame
-        column_structure = self.SA["Table"].columns.tolist()
+        column_structure = self.SA['Data'].columns.tolist()
         self.tree = ttk.Treeview(
             frame, columns=('Select',) + tuple(column_structure), show='headings'
         )
@@ -239,10 +238,10 @@ class DataFrameViewer:
     def plot_row(self, item):
         tags = self.tree.item(item, 'tags')
         idx = int(tags[0])
-        #row_data = self.SA["Table"].loc[idx]
+        #row_data = self.SA['Data'].loc[idx]
 
         # Get and plot current shot data
-        current_shot = self.SA["Shot"][idx]["Route"]
+        current_shot = self.SA["Shot"][idx]['Ball']
         self.ps.plot(current_shot)  # Update existing plot
         self.ps.update()  # Trigger canvas update
 
@@ -262,7 +261,7 @@ class DataFrameViewer:
 
         # Update both DataFrame and SA structure
         self.df = self.df.drop(index=deleted_indices)
-        self.SA['Table'] = self.df  # Update the table in SA
+        self.SA['Data'] = self.df  # Update the table in SA
         print(f"Deleted {len(selected_items)} rows. Remaining: {len(self.df)}")
 
 

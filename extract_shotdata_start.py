@@ -35,5 +35,5 @@ def extract_shotdata_start(self):
 
 
     # You can now access the processed data in SA
-    # Example: print(self.SA['Table'].head())
-    # Example: print(self.SA['Shot'][0]['Route'][0]['x']) # X coordinates of ball 1, shot 1
+    # Example: print(self.SA['Data'].head())
+    # Example: print(self.SA['Shot'][0]['Ball'][0]['x']) # X coordinates of ball 1, shot 1

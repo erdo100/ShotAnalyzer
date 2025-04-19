@@ -17,16 +17,16 @@ class plot_debug:
         plt.ion()  # Turn on interactive mode
         fig, ax = plt.subplots(figsize=(7, 12))
 
-        ax.set_ylim(0, 2840)  # Set appropriate limits for your data
-        ax.set_xlim(0, 1420)
+        ax.set_ylim(0, 2.840)  # Set appropriate limits for your data
+        ax.set_xlim(0, 1.420)
         
         #show axis real size
         ax.set_aspect('equal', adjustable='box')
         
         # make figure close around axis
         fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
-        ax.set_yticks(np.linspace(0, 2840, 9))
-        ax.set_xticks(np.linspace(0, 1420, 5))
+        ax.set_yticks(np.linspace(0, 2.840, 9))
+        ax.set_xticks(np.linspace(0, 1.420, 5))
 
         ax.grid(True, which='major', axis='both', linestyle='--', linewidth=0.8, color='gray')
 
@@ -111,7 +111,7 @@ def extract_events_start(self): # param added for consistency, but unused here
     SA = self.SA
     param = self.param
 
-    num_shots = len(SA['Table'])
+    num_shots = len(SA['Data'])
     if num_shots == 0:
         print("No shots to process for B1B2B3 extraction.")
         return
@@ -123,13 +123,13 @@ def extract_events_start(self): # param added for consistency, but unused here
     err = {'code': None, 'text': ''}
 
     # Check if 'B1hit' column exists in the DataFrame
-    if 'B1hit' not in SA['Table'].columns:
-        SA['Table']['B1hit'] = ''
-        SA['Table']['B2hit'] = ''
-        SA['Table']['B3hit'] = ''
+    if 'B1hit' not in SA['Data'].columns:
+        SA['Data']['B1hit'] = ''
+        SA['Data']['B2hit'] = ''
+        SA['Data']['B3hit'] = ''
 
     # Iterate through shots using the DataFrame index
-    for si, current_shot_id in enumerate(SA['Table']['ShotID']):
+    for si, current_shot_id in enumerate(SA['Data']['ShotID']):
         print(f"Processing shot index {si} (ShotID: {current_shot_id})...")
 
         # extract all events
@@ -152,13 +152,13 @@ def extract_events(SA, si, param, plotflag=False):
     """
 
     # Initiate Plot and video
-    ShotID = SA['Table'].iloc[si]['ShotID']
+    ShotID = SA['Data'].iloc[si]['ShotID']
     ps = None
     if plotflag:
         ps = plot_debug(param, ShotID)
 
 
-    b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA['Table'].iloc[si]['B1B2B3'])
+    b1b2b3, b1i, b2i, b3i = str2num_b1b2b3(SA['Data'].iloc[si]['B1B2B3'])
 
     # Ball-Ball distance calculation
     BB = [[0, 1], [0, 2], [1, 2]]  # 0-based ball pairs (W=0, Y=1, R=2)
@@ -168,13 +168,13 @@ def extract_events(SA, si, param, plotflag=False):
     ball0 = [None]*3
     for bi in range(3):
         # Copy Route0 to Route
-        ball0[bi] = copy.deepcopy(SA['Shot'][si]['Route'][bi])
+        ball0[bi] = copy.deepcopy(SA['Shot'][si]['Ball'][bi])
         
     # Initialize ball positions
     ball = {bi: {'x': [], 'y': [], 't': []} for bi in range(3)}
     for bi in range(3):
-        ball[bi]['x'].append(SA['Shot'][si]['Route'][bi]['x'][0])
-        ball[bi]['y'].append(SA['Shot'][si]['Route'][bi]['y'][0])
+        ball[bi]['x'].append(SA['Shot'][si]['Ball'][bi]['x'][0])
+        ball[bi]['y'].append(SA['Shot'][si]['Ball'][bi]['y'][0])
         ball[bi]['t'].append(0.0)  # Initial time
 
     # Create common time points
@@ -191,13 +191,13 @@ def extract_events(SA, si, param, plotflag=False):
             'Kiss': [0],
             'Point': [0],
             'Fuchs': [0],
-            'PointDist': [3000.0],
-            'KissDistB1': [3000.0],
-            'Tpoint': [3000.0],
-            'Tkiss': [3000.0],
-            'Tready': [3000.0],
-            'TB2hit': [3000.0],
-            'Tfailure': [3000.0]
+            'PointDist': [3.0],
+            'KissDistB1': [3.0],
+            'Tpoint': [3.0],
+            'Tkiss': [3.0],
+            'Tready': [3.0],
+            'TB2hit': [3.0],
+            'Tfailure': [3.0]
         } for bi in range(3)
     }
 
@@ -451,11 +451,11 @@ def extract_events(SA, si, param, plotflag=False):
             # Velocity checks
             checkvel_b1 = False
             if abs(b[bx1]['vt1']) > eps or abs(b[bx1]['vt2']) > eps:
-                checkvel_b1 = abs(b[bx1]['vt2'] - b[bx1]['vt1']) > 50
+                checkvel_b1 = abs(b[bx1]['vt2'] - b[bx1]['vt1']) > 0.050
 
             checkvel_b2 = False
             if abs(b[bx2]['vt1']) > eps or abs(b[bx2]['vt2']) > eps:
-                checkvel_b2 = abs(b[bx2]['vt2'] - b[bx2]['vt1']) > 50
+                checkvel_b2 = abs(b[bx2]['vt2'] - b[bx2]['vt1']) > 0.050
 
             # Time collision check
             checkdouble = False
@@ -775,9 +775,9 @@ def extract_events(SA, si, param, plotflag=False):
     SA['Shot'][si]["hit"] = hit  # Initialize Route list
 
     # Save hitwith data to SA Table. use columns B1hit, B2hit, B3hit. create single string for one ball
-    SA['Table'].at[si, 'B1hit'] = ''.join(hit[b1i]['with'])
-    SA['Table'].at[si, 'B2hit'] = ''.join(hit[b2i]['with'])
-    SA['Table'].at[si, 'B3hit'] = ''.join(hit[b3i]['with'])
+    SA['Data'].at[si, 'B1hit'] = ''.join(hit[b1i]['with'])
+    SA['Data'].at[si, 'B2hit'] = ''.join(hit[b2i]['with'])
+    SA['Data'].at[si, 'B3hit'] = ''.join(hit[b3i]['with'])
     
     if plotflag:
         ps.writer.finish()
@@ -785,8 +785,8 @@ def extract_events(SA, si, param, plotflag=False):
 
     # Assign processed ball data back to SA structure
     for bi in range(3):  # 0-based indexing for 3 balls
-        SA['Shot'][si]['Route'][bi]['t'] = ball[bi]['t']
-        SA['Shot'][si]['Route'][bi]['x'] = ball[bi]['x']
-        SA['Shot'][si]['Route'][bi]['y'] = ball[bi]['y']
+        SA['Shot'][si]['Ball'][bi]['t'] = ball[bi]['t']
+        SA['Shot'][si]['Ball'][bi]['x'] = ball[bi]['x']
+        SA['Shot'][si]['Ball'][bi]['y'] = ball[bi]['y']
 
     return SA  # Return updated SA and error structure

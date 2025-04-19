@@ -14,7 +14,7 @@ def read_gamefile(filepath):
 
     Returns:
         dict: A dictionary (SA) containing 'Shot' data (list of dicts)
-              and 'Table' data (pandas DataFrame), or None if no valid
+              and 'Data' data (pandas DataFrame), or None if no valid
               shot data is found.
     """
     try:
@@ -34,7 +34,7 @@ def read_gamefile(filepath):
     # Extract filename without extension
     filename = os.path.splitext(os.path.basename(filepath))[0]
 
-    SA = {'Shot': [], 'Table': None}
+    SA = {'Shot': [], 'Data': None}
     check = 0 # Flag to check if any valid shot data was processed
 
     # Lists to build the DataFrame columns
@@ -135,7 +135,7 @@ def read_gamefile(filepath):
                 Interpreted_list.append(0)
                 Mirrored_list.append(0) # Assuming 0 initially, MATLAB code had this
 
-                shot_data = {'Route': [{}, {}, {}], 'hit': 0}
+                shot_data = {'Ball': [{}, {}, {}], 'hit': 0}
                 valid_route_data = True
                 for bi in range(3): # For each ball (0, 1, 2)
                     coords = current_entry['PathTracking']['DataSets'][bi].get('Coords')
@@ -168,7 +168,7 @@ def read_gamefile(filepath):
                         'x': np.array(x_list, dtype=float),
                         'y': np.array(y_list, dtype=float)
                     }
-                    shot_data['Route'][bi] = current_route
+                    shot_data['Ball'][bi] = current_route
 
                 if valid_route_data:
                     SA['Shot'].append(shot_data)
@@ -216,10 +216,10 @@ def read_gamefile(filepath):
             #'Player1': Player1_list,
             #'Player2': Player2_list
         }
-        SA['Table'] = pd.DataFrame(df_data)
+        SA['Data'] = pd.DataFrame(df_data)
         # Ensure ShotID is integer if possible
-        SA['Table']['ShotID'] = pd.to_numeric(SA['Table']['ShotID'], errors='coerce').fillna(0).astype(int)
-        print(f"Successfully read {len(SA['Table'])} shots from {filepath}")
+        SA['Data']['ShotID'] = pd.to_numeric(SA['Data']['ShotID'], errors='coerce').fillna(0).astype(int)
+        print(f"Successfully read {len(SA['Data'])} shots from {filepath}")
         return SA
     else:
         print(f"No valid shot data found or processed in {filepath}")
@@ -235,7 +235,7 @@ def read_gamefile(filepath):
 
     Returns:
         dict: A dictionary (SA) containing 'Shot' data (list of dicts)
-              and 'Table' data (pandas DataFrame), or None if no valid
+              and 'Data' data (pandas DataFrame), or None if no valid
               shot data is found.
     """
     try:
@@ -249,13 +249,13 @@ def read_gamefile(filepath):
         return None
 
     # Scaling factors
-    tableX = 2840.0
-    tableY = 1420.0
+    tableX = 2.840
+    tableY = 1.420
 
     # Extract filename without extension
     filename = os.path.splitext(os.path.basename(filepath))[0]
 
-    SA = {'Shot': [], 'Table': None}
+    SA = {'Shot': [], 'Data': None}
     check = 0 # Flag to check if any valid shot data was processed
 
     # Lists to build the DataFrame columns
@@ -356,7 +356,7 @@ def read_gamefile(filepath):
                 Interpreted_list.append(0)
                 Mirrored_list.append(0) # Assuming 0 initially, MATLAB code had this
 
-                shot_data = {'Route': [{}, {}, {}], 'hit': 0}
+                shot_data = {'Ball': [{}, {}, {}], 'hit': 0}
                 valid_route_data = True
                 for bi in range(3): # For each ball (0, 1, 2)
                     coords = current_entry['PathTracking']['DataSets'][bi].get('Coords')
@@ -389,7 +389,7 @@ def read_gamefile(filepath):
                         'x': np.array(x_list, dtype=float),
                         'y': np.array(y_list, dtype=float)
                     }
-                    shot_data['Route'][bi] = current_route
+                    shot_data['Ball'][bi] = current_route
 
                 if valid_route_data:
                     SA['Shot'].append(shot_data)
@@ -437,10 +437,10 @@ def read_gamefile(filepath):
             #'Player1': Player1_list,
             #'Player2': Player2_list
         }
-        SA['Table'] = pd.DataFrame(df_data)
+        SA['Data'] = pd.DataFrame(df_data)
         # Ensure ShotID is integer if possible
-        SA['Table']['ShotID'] = pd.to_numeric(SA['Table']['ShotID'], errors='coerce').fillna(0).astype(int)
-        print(f"Successfully read {len(SA['Table'])} shots from {filepath}")
+        SA['Data']['ShotID'] = pd.to_numeric(SA['Data']['ShotID'], errors='coerce').fillna(0).astype(int)
+        print(f"Successfully read {len(SA['Data'])} shots from {filepath}")
         return SA
     else:
         print(f"No valid shot data found or processed in {filepath}")

@@ -10,21 +10,21 @@ def extract_dataquality_start(self):
     """
     Performs data quality checks and corrections on shot data.
 
-    Modifies SA['Shot'][si]['Route'] and updates SA['Table'] with error codes/text.
+    Modifies SA['Shot'][si]['Ball'] and updates SA['Data'] with error codes/text.
 
     Args:
-        SA (dict): The main data structure containing 'Shot' and 'Table'.
+        SA (dict): The main data structure containing 'Shot' and 'Data'.
         param (dict): Dictionary of parameters for table dimensions, tolerances, etc.
     """
     print(f'start ({os.path.basename(__file__)})') # Using file name
     SA = self.SA
     param = self.param
 
-    if SA is None or 'Table' not in SA or SA['Table'] is None or 'Shot' not in SA:
+    if SA is None or 'Data' not in SA or SA['Data'] is None or 'Shot' not in SA:
         print("Error: SA structure is invalid or empty.")
         return
 
-    num_shots = len(SA['Table'])
+    num_shots = len(SA['Data'])
     if num_shots == 0:
         print("No shots to process for data quality.")
         return
@@ -36,7 +36,7 @@ def extract_dataquality_start(self):
          num_shots = min(num_shots, len(SA['Shot']))
 
 
-    selected_count_start = SA['Table']['Selected'].sum()
+    selected_count_start = SA['Data']['Selected'].sum()
 
     # Use DataFrame index directly (si represents the index in the DataFrame and the list SA['Shot'])
     for si in range(num_shots): # Iterate using 0-based index
@@ -44,9 +44,9 @@ def extract_dataquality_start(self):
         # However, since we build it sequentially, direct index 'si' should work.
         # Using .iloc[si] is safer if index isn't guaranteed 0..N-1
         try:
-            interpreted_status = SA['Table'].iloc[si]['Interpreted']
+            interpreted_status = SA['Data'].iloc[si]['Interpreted']
         except IndexError:
-             print(f"Error: Index {si} out of bounds for SA['Table'] or SA['Shot'].")
+             print(f"Error: Index {si} out of bounds for SA['Data'] or SA['Shot'].")
              continue # Skip this iteration
 
         if interpreted_status == 0:
@@ -61,20 +61,20 @@ def extract_dataquality_start(self):
             # Check 1 & 2: Ball data missing (0 or 1 points)
             current_errcode = base_errcode + 1
             for bi in range(3):
-                if len(SA['Shot'][si]['Route'][bi]['t']) == 0:
+                if len(SA['Shot'][si]['Ball'][bi]['t']) == 0:
                     err_code = current_errcode
                     err_text = f'Ball data is missing (0 points) (ball {bi+1})'
                     print(f"ShotIndex {si}: {err_text}")
-                    SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                    SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                     break # Found error, stop checking this block
             if err_code is None:
                 current_errcode = base_errcode + 2
                 for bi in range(3):
-                    if len(SA['Shot'][si]['Route'][bi]['t']) == 1:
+                    if len(SA['Shot'][si]['Ball'][bi]['t']) == 1:
                         err_code = current_errcode
                         err_text = f'Ball data is missing (1 point) (ball {bi+1})'
                         print(f"ShotIndex {si}: {err_text}")
-                        SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                        SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                         break
 
             # Check 3 & 4: (Duplicate of 1 & 2 in MATLAB) - Check if points remain after potential deletion (which was commented out)
@@ -83,20 +83,20 @@ def extract_dataquality_start(self):
             if err_code is None:
                 current_errcode = base_errcode + 3
                 for bi in range(3):
-                    if len(SA['Shot'][si]['Route'][bi]['t']) == 0:
+                    if len(SA['Shot'][si]['Ball'][bi]['t']) == 0:
                         err_code = current_errcode
                         err_text = f'Ball data missing after processing (0 points) (ball {bi+1})'
                         print(f"ShotIndex {si}: {err_text}")
-                        SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                        SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                         break
             if err_code is None:
                 current_errcode = base_errcode + 4
                 for bi in range(3):
-                    if len(SA['Shot'][si]['Route'][bi]['t']) == 1:
+                    if len(SA['Shot'][si]['Ball'][bi]['t']) == 1:
                         err_code = current_errcode
                         err_text = f'Ball data missing after processing (1 point) (ball {bi+1})'
                         print(f"ShotIndex {si}: {err_text}")
-                        SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                        SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                         break
 
             # Check 5: Project Points slightly outside cushion back onto cushion edge
@@ -122,15 +122,15 @@ def extract_dataquality_start(self):
                 max_y = sizeY - ballR - 0.1
 
                 for bi in range(3):
-                    x_coords = SA['Shot'][si]['Route'][bi]['x']
-                    y_coords = SA['Shot'][si]['Route'][bi]['y']
+                    x_coords = SA['Shot'][si]['Ball'][bi]['x']
+                    y_coords = SA['Shot'][si]['Ball'][bi]['y']
 
                     # Clip coordinates to be within the boundaries
                     x_coords = np.clip(x_coords, min_x, max_x)
                     y_coords = np.clip(y_coords, min_y, max_y)
 
-                    SA['Shot'][si]['Route'][bi]['x'] = x_coords
-                    SA['Shot'][si]['Route'][bi]['y'] = y_coords
+                    SA['Shot'][si]['Ball'][bi]['x'] = x_coords
+                    SA['Shot'][si]['Ball'][bi]['y'] = y_coords
 
 
             # Check 6: Initial ball distance check and correction
@@ -141,11 +141,11 @@ def extract_dataquality_start(self):
                 correction_applied = False
                 for b1i, b2i in BB:
                     # Ensure there's at least one point for each ball in the pair
-                    if len(SA['Shot'][si]['Route'][b1i]['x']) == 0 or len(SA['Shot'][si]['Route'][b2i]['x']) == 0:
+                    if len(SA['Shot'][si]['Ball'][b1i]['x']) == 0 or len(SA['Shot'][si]['Ball'][b2i]['x']) == 0:
                        continue # Cannot compare if a ball has no data
 
-                    x1, y1 = SA['Shot'][si]['Route'][b1i]['x'][0], SA['Shot'][si]['Route'][b1i]['y'][0]
-                    x2, y2 = SA['Shot'][si]['Route'][b2i]['x'][0], SA['Shot'][si]['Route'][b2i]['y'][0]
+                    x1, y1 = SA['Shot'][si]['Ball'][b1i]['x'][0], SA['Shot'][si]['Ball'][b1i]['y'][0]
+                    x2, y2 = SA['Shot'][si]['Ball'][b2i]['x'][0], SA['Shot'][si]['Ball'][b2i]['y'][0]
 
                     dx, dy = x1 - x2, y1 - y2
                     dist_sq = dx**2 + dy**2
@@ -168,32 +168,32 @@ def extract_dataquality_start(self):
 
                             # Move balls apart along the connection line by half the overlap each
                             move_dist = overlap / 2.0
-                            SA['Shot'][si]['Route'][b1i]['x'][0] -= unit_vec_x * move_dist
-                            SA['Shot'][si]['Route'][b1i]['y'][0] -= unit_vec_y * move_dist
-                            SA['Shot'][si]['Route'][b2i]['x'][0] += unit_vec_x * move_dist
-                            SA['Shot'][si]['Route'][b2i]['y'][0] += unit_vec_y * move_dist
+                            SA['Shot'][si]['Ball'][b1i]['x'][0] -= unit_vec_x * move_dist
+                            SA['Shot'][si]['Ball'][b1i]['y'][0] -= unit_vec_y * move_dist
+                            SA['Shot'][si]['Ball'][b2i]['x'][0] += unit_vec_x * move_dist
+                            SA['Shot'][si]['Ball'][b2i]['y'][0] += unit_vec_y * move_dist
                         else:
                             # Balls are exactly at the same spot, move them slightly apart arbitrarily (e.g., along x-axis)
-                            SA['Shot'][si]['Route'][b1i]['x'][0] -= ballR
-                            SA['Shot'][si]['Route'][b2i]['x'][0] += ballR
+                            SA['Shot'][si]['Ball'][b1i]['x'][0] -= ballR
+                            SA['Shot'][si]['Ball'][b2i]['x'][0] += ballR
 
                 # Re-project positions onto cushion after correction, as correction might push them out
                 if correction_applied:
                      for bi_reproj in range(3):
-                        if len(SA['Shot'][si]['Route'][bi_reproj]['x']) > 0: # Check if ball has data
-                            x_coords_reproj = SA['Shot'][si]['Route'][bi_reproj]['x']
-                            y_coords_reproj = SA['Shot'][si]['Route'][bi_reproj]['y']
+                        if len(SA['Shot'][si]['Ball'][bi_reproj]['x']) > 0: # Check if ball has data
+                            x_coords_reproj = SA['Shot'][si]['Ball'][bi_reproj]['x']
+                            y_coords_reproj = SA['Shot'][si]['Ball'][bi_reproj]['y']
                             x_coords_reproj[0] = np.clip(x_coords_reproj[0], min_x, max_x)
                             y_coords_reproj[0] = np.clip(y_coords_reproj[0], min_y, max_y)
-                            SA['Shot'][si]['Route'][bi_reproj]['x'] = x_coords_reproj
-                            SA['Shot'][si]['Route'][bi_reproj]['y'] = y_coords_reproj
+                            SA['Shot'][si]['Ball'][bi_reproj]['x'] = x_coords_reproj
+                            SA['Shot'][si]['Ball'][bi_reproj]['y'] = y_coords_reproj
 
 
             # Check 7: Time linearity check and correction
             if err_code is None:
                 current_errcode = base_errcode + 6
                 for bi in range(3):
-                    t = SA['Shot'][si]['Route'][bi]['t']
+                    t = SA['Shot'][si]['Ball'][bi]['t']
                     if len(t) < 2: continue # Need at least two points to check diff
 
                     dt = np.diff(t)
@@ -229,7 +229,7 @@ def extract_dataquality_start(self):
                             # Handle error - maybe mark shot as bad?
                             err_code = current_errcode
                             err_text = f'Time linearity correction failed (index OOB) (ball {bi+1})'
-                            SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                            SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                             break # Stop checking this shot
 
 
@@ -238,16 +238,16 @@ def extract_dataquality_start(self):
                         # Check if the correction worked
                         if len(t_new) < 2 or np.all(np.diff(t_new) > 0):
                             print(f"ShotIndex {si}: Successfully fixed time linearity for ball {bi+1} :)")
-                            SA['Shot'][si]['Route'][bi]['t'] = t_new
-                            SA['Shot'][si]['Route'][bi]['x'] = SA['Shot'][si]['Route'][bi]['x'][mask]
-                            SA['Shot'][si]['Route'][bi]['y'] = SA['Shot'][si]['Route'][bi]['y'][mask]
+                            SA['Shot'][si]['Ball'][bi]['t'] = t_new
+                            SA['Shot'][si]['Ball'][bi]['x'] = SA['Shot'][si]['Ball'][bi]['x'][mask]
+                            SA['Shot'][si]['Ball'][bi]['y'] = SA['Shot'][si]['Ball'][bi]['y'][mask]
                             ind = [] # Reset ind as the issue is fixed
                         else:
                             # Correction failed, mark error
                             print(f"ShotIndex {si}: Could not fix time linearity for ball {bi+1} :(")
                             err_code = current_errcode
                             err_text = f'Non-linear time detected and unfixable (ball {bi+1})'
-                            SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                            SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                             # No need to store err.region, it was for GUI
                             break # Stop checking balls for this shot
 
@@ -257,7 +257,7 @@ def extract_dataquality_start(self):
                  t_ends = []
                  valid_times = True
                  for bi_t in range(3):
-                     t_vec = SA['Shot'][si]['Route'][bi_t]['t']
+                     t_vec = SA['Shot'][si]['Ball'][bi_t]['t']
                      if len(t_vec) > 0:
                          t_starts.append(t_vec[0])
                          t_ends.append(t_vec[-1])
@@ -272,7 +272,7 @@ def extract_dataquality_start(self):
                          err_code = current_errcode
                          err_text = f'Start times differ between balls ({t_starts})'
                          print(f"ShotIndex {si}: {err_text}")
-                         SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                         SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
 
                      if err_code is None: # Only check end times if start times were ok
                         current_errcode = base_errcode + 8
@@ -281,7 +281,7 @@ def extract_dataquality_start(self):
                             err_code = current_errcode
                             err_text = f'End times differ between balls ({t_ends})'
                             print(f"ShotIndex {si}: {err_text}")
-                            SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                            SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                  elif not valid_times:
                      # If we couldn't check because a ball was empty, this was already flagged earlier.
                      pass
@@ -296,9 +296,9 @@ def extract_dataquality_start(self):
                     corrected = True # Flag to re-iterate if a point is deleted
                     while corrected:
                          corrected = False
-                         t = SA['Shot'][si]['Route'][bi]['t']
-                         x = SA['Shot'][si]['Route'][bi]['x']
-                         y = SA['Shot'][si]['Route'][bi]['y']
+                         t = SA['Shot'][si]['Ball'][bi]['t']
+                         x = SA['Shot'][si]['Ball'][bi]['x']
+                         y = SA['Shot'][si]['Ball'][bi]['y']
                          n_points = len(t)
 
                          if n_points < 3: break # Need at least 3 points
@@ -317,8 +317,8 @@ def extract_dataquality_start(self):
 
                             # Conditions from MATLAB: dl0 < dl1*0.5 & dl0 < dl2*0.5 & dl1 > 100
                             # The dl1 > 100 condition seems context specific, maybe minimum segment length?
-                            if dl1 > 1e-6 and dl2 > 1e-6: # Avoid division by zero / check valid segments
-                                if dl0 < dl1 * 0.5 and dl0 < dl2 * 0.5 and dl1 > 100: # Using 100 from MATLAB
+                            if dl1 > 1e-9 and dl2 > 1e-9: # Avoid division by zero / check valid segments
+                                if dl0 < dl1 * 0.5 and dl0 < dl2 * 0.5 and dl1 > 0.100: # Using 100 from MATLAB
                                      # Mark point i+1 for deletion
                                      indices_to_delete.append(i + 1)
                                      # Skip checking the next segment involving the deleted point
@@ -332,9 +332,9 @@ def extract_dataquality_start(self):
                              print(f"ShotIndex {si}: Removing {len(indices_to_delete)} jump/reflection points for ball {bi+1}.")
                              mask = np.ones(n_points, dtype=bool)
                              mask[indices_to_delete] = False
-                             SA['Shot'][si]['Route'][bi]['t'] = t[mask]
-                             SA['Shot'][si]['Route'][bi]['x'] = x[mask]
-                             SA['Shot'][si]['Route'][bi]['y'] = y[mask]
+                             SA['Shot'][si]['Ball'][bi]['t'] = t[mask]
+                             SA['Shot'][si]['Ball'][bi]['x'] = x[mask]
+                             SA['Shot'][si]['Ball'][bi]['y'] = y[mask]
                              corrected = True # Signal to re-run the check on the modified data
 
             # Check 11 & 12: Check gaps in tracking (distance and velocity)
@@ -344,9 +344,9 @@ def extract_dataquality_start(self):
                 max_vel_limit = param.get('MaxVelocity', 12000)
 
                 for bi in range(3):
-                    t = SA['Shot'][si]['Route'][bi]['t']
-                    x = SA['Shot'][si]['Route'][bi]['x']
-                    y = SA['Shot'][si]['Route'][bi]['y']
+                    t = SA['Shot'][si]['Ball'][bi]['t']
+                    x = SA['Shot'][si]['Ball'][bi]['x']
+                    y = SA['Shot'][si]['Ball'][bi]['y']
 
                     if len(t) < 2: continue # Need at least two points
 
@@ -362,7 +362,7 @@ def extract_dataquality_start(self):
                         problem_indices = np.where(ds > max_dist_limit)[0]
                         err_text = f'Gap in data too big ({np.max(ds[problem_indices]):.1f} > {max_dist_limit}) (ball {bi+1}, step {problem_indices[0]+1})'
                         print(f"ShotIndex {si}: {err_text}")
-                        SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                        SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                         break # Stop checking balls for this shot
 
                     # Check velocity
@@ -379,7 +379,7 @@ def extract_dataquality_start(self):
                          # err_code = current_errcode + 1 # Or use a specific code
                          # err_text = f'Zero time difference detected (ball {bi+1})'
                          # print(f"ShotIndex {si}: {err_text}")
-                         # SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                         # SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                          # break # Stop checking balls for this shot
                     
                     # Now check velocity limit
@@ -388,16 +388,16 @@ def extract_dataquality_start(self):
                         problem_indices = np.where(vabs > max_vel_limit)[0]
                         err_text = f'Velocity too high ({np.max(vabs[problem_indices]):.1f} > {max_vel_limit}) (ball {bi+1}, step {problem_indices[0]+1})'
                         print(f"ShotIndex {si}: {err_text}")
-                        SA['Table'].iloc[si, SA['Table'].columns.get_loc('Selected')] = True
+                        SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                         break # Stop checking balls for this shot
             
             # Update the error status in the table
-            SA['Table'].iloc[si, SA['Table'].columns.get_loc('ErrorID')] = err_code if err_code is not None else 0 # Use 0 for no error found
-            SA['Table'].iloc[si, SA['Table'].columns.get_loc('ErrorText')] = err_text if err_text is not None else 'Quality checks passed'
+            SA['Data'].iloc[si, SA['Data'].columns.get_loc('ErrorID')] = err_code if err_code is not None else 0 # Use 0 for no error found
+            SA['Data'].iloc[si, SA['Data'].columns.get_loc('ErrorText')] = err_text if err_text is not None else 'Quality checks passed'
 
             # --- End of Quality Checks ---
 
-    selected_count_end = SA['Table']['Selected'].sum()
+    selected_count_end = SA['Data']['Selected'].sum()
     print(f'{selected_count_end}/{num_shots} shots selected (marked with errors/warnings)')
 
     print("\nRunning deletion of selected shots...")

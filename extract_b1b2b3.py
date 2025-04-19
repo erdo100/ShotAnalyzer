@@ -11,7 +11,7 @@ def extract_b1b2b3(shot):
     Determines the likely order of balls (Cue, Object, Other) based on initial movement.
 
     Args:
-        shot (dict): Dictionary containing shot data, specifically shot['Route']
+        shot (dict): Dictionary containing shot data, specifically shot['Ball']
                      which is a list of 3 dicts, each with 't', 'x', 'y' numpy arrays.
         angle_vector_func (callable): The function to calculate the angle between vectors.
 
@@ -30,11 +30,11 @@ def extract_b1b2b3(shot):
     col = 'WYR' # Represents Ball 0 (White), Ball 1 (Yellow), Ball 2 (Red)
 
     # Check if any ball has less than 2 data points
-    # MATLAB: length(shot.Route(i).t) < 2 corresponds to len(shot['Route'][i-1]['t']) < 2
+    # MATLAB: length(shot.Route(i).t) < 2 corresponds to len(shot['Ball'][i-1]['t']) < 2
     # MATLAB's | is logical OR
-    if len(shot['Route'][0]['t']) < 2 or \
-       len(shot['Route'][1]['t']) < 2 or \
-       len(shot['Route'][2]['t']) < 2:
+    if len(shot['Ball'][0]['t']) < 2 or \
+       len(shot['Ball'][1]['t']) < 2 or \
+       len(shot['Ball'][2]['t']) < 2:
         # The MATLAB comments seem slightly contradictory/confusing here
         b1b2b3 = 'WYR' # Default order if insufficient data
         err['code'] = 2 # Error code from MATLAB
@@ -43,8 +43,8 @@ def extract_b1b2b3(shot):
         return b1b2b3, b1b2b3_num.tolist(), err # Corresponds to MATLAB's return
 
     # Get the time of the *second* point for each ball (index 1 in Python)
-    # MATLAB: shot.Route(i).t(2) corresponds to shot['Route'][i-1]['t'][1]
-    times_at_step2 = [shot['Route'][0]['t'][1], shot['Route'][1]['t'][1], shot['Route'][2]['t'][1]]
+    # MATLAB: shot.Route(i).t(2) corresponds to shot['Ball'][i-1]['t'][1]
+    times_at_step2 = [shot['Ball'][0]['t'][1], shot['Ball'][1]['t'][1], shot['Ball'][2]['t'][1]]
 
     # Sort the times and get the original indices (0, 1, 2)
     # MATLAB: [t, b1b2b3num] = sort(...)
@@ -60,15 +60,15 @@ def extract_b1b2b3(shot):
 
     # Check if the fastest moving ball (b1it) has at least 3 points
     # MATLAB: length(shot.Route(b1it).t) >= 3
-    if len(shot['Route'][b1it]['t']) >= 3:
+    if len(shot['Ball'][b1it]['t']) >= 3:
 
         # Find indices for balls b2it and b3it moving *before or at* the time of
         # the 2nd and 3rd steps of the first moving ball (b1it).
 
-        t_b1_step2 = shot['Route'][b1it]['t'][1]
-        t_b1_step3 = shot['Route'][b1it]['t'][2]
-        t_b2_from_step2 = shot['Route'][b2it]['t'][1:]
-        t_b3_from_step2 = shot['Route'][b3it]['t'][1:]
+        t_b1_step2 = shot['Ball'][b1it]['t'][1]
+        t_b1_step3 = shot['Ball'][b1it]['t'][2]
+        t_b2_from_step2 = shot['Ball'][b2it]['t'][1:]
+        t_b3_from_step2 = shot['Ball'][b3it]['t'][1:]
 
         # Find last index in t_b2_from_step2 <= t_b1_step2
         idx_b2_le_t_b1_s2 = np.where(t_b2_from_step2 <= t_b1_step2)[0]
@@ -102,12 +102,12 @@ def extract_b1b2b3(shot):
         # B1 and B2 moved
 
         # Get initial positions (index 0)
-        x_b1_0, y_b1_0 = shot['Route'][b1it]['x'][0], shot['Route'][b1it]['y'][0]
-        x_b2_0, y_b2_0 = shot['Route'][b2it]['x'][0], shot['Route'][b2it]['y'][0]
+        x_b1_0, y_b1_0 = shot['Ball'][b1it]['x'][0], shot['Ball'][b1it]['y'][0]
+        x_b2_0, y_b2_0 = shot['Ball'][b2it]['x'][0], shot['Ball'][b2it]['y'][0]
 
         # Get second positions (index 1)
-        x_b1_1, y_b1_1 = shot['Route'][b1it]['x'][1], shot['Route'][b1it]['y'][1]
-        x_b2_1, y_b2_1 = shot['Route'][b2it]['x'][1], shot['Route'][b2it]['y'][1]
+        x_b1_1, y_b1_1 = shot['Ball'][b1it]['x'][1], shot['Ball'][b1it]['y'][1]
+        x_b2_1, y_b2_1 = shot['Ball'][b2it]['x'][1], shot['Ball'][b2it]['y'][1]
 
         # B1-B2 vector (from B1 towards B2)
         vec_b1b2 = np.array([x_b2_0 - x_b1_0, y_b2_0 - y_b1_0])
@@ -133,12 +133,12 @@ def extract_b1b2b3(shot):
          # B1 and B3 moved
 
         # Get initial positions (index 0)
-        x_b1_0, y_b1_0 = shot['Route'][b1it]['x'][0], shot['Route'][b1it]['y'][0]
-        x_b3_0, y_b3_0 = shot['Route'][b3it]['x'][0], shot['Route'][b3it]['y'][0]
+        x_b1_0, y_b1_0 = shot['Ball'][b1it]['x'][0], shot['Ball'][b1it]['y'][0]
+        x_b3_0, y_b3_0 = shot['Ball'][b3it]['x'][0], shot['Ball'][b3it]['y'][0]
 
         # Get second positions (index 1)
-        x_b1_1, y_b1_1 = shot['Route'][b1it]['x'][1], shot['Route'][b1it]['y'][1]
-        x_b3_1, y_b3_1 = shot['Route'][b3it]['x'][1], shot['Route'][b3it]['y'][1]
+        x_b1_1, y_b1_1 = shot['Ball'][b1it]['x'][1], shot['Ball'][b1it]['y'][1]
+        x_b3_1, y_b3_1 = shot['Ball'][b3it]['x'][1], shot['Ball'][b3it]['y'][1]
 
         # B1-B3 vector (from B1 towards B3)
         vec_b1b3 = np.array([x_b3_0 - x_b1_0, y_b3_0 - y_b1_0])
