@@ -67,29 +67,29 @@ class plot_debug:
     
     def plot(self, ball, b):
         # Update the ball positions
-        self.ball_line[0].set_data(ball[0]['y'], ball[0]['x'])
-        self.ball_line[1].set_data(ball[1]['y'], ball[1]['x'])
-        self.ball_line[2].set_data(ball[2]['y'], ball[2]['x'])
+        self.ball_line[0].set_data(ball[0]['x'], ball[0]['y'])
+        self.ball_line[1].set_data(ball[1]['x'], ball[1]['y'])
+        self.ball_line[2].set_data(ball[2]['x'], ball[2]['y'])
 
         # Update the circle patches for each ball
-        self.ball_circ[0].center = (ball[0]['y'][-1], ball[0]['x'][-1])
-        self.ball_circ[1].center = (ball[1]['y'][-1], ball[1]['x'][-1])
-        self.ball_circ[2].center = (ball[2]['y'][-1], ball[2]['x'][-1])
+        self.ball_circ[0].center = (ball[0]['x'][-1], ball[0]['y'][-1])
+        self.ball_circ[1].center = (ball[1]['x'][-1], ball[1]['y'][-1])
+        self.ball_circ[2].center = (ball[2]['x'][-1], ball[2]['y'][-1])
 
         plt.draw()
         plt.pause(0.01)
 
     def plot_appr(self, b):
-        self.appr_line[0].set_data([b[0]['ya']], [b[0]['xa']])
-        self.appr_line[1].set_data([b[1]['ya']], [b[1]['xa']])
-        self.appr_line[2].set_data([b[2]['ya']], [b[2]['xa']])
+        self.appr_line[0].set_data([b[0]['xa']], [b[0]['ya']])
+        self.appr_line[1].set_data([b[1]['xa']], [b[1]['ya']])
+        self.appr_line[2].set_data([b[2]['xa']], [b[2]['ya']])
 
         plt.draw()
         plt.pause(0.01)
 
     def plot_hit(self, x, y):
         # Plot the hit points
-        circ = plt.Circle((y, x),
+        circ = plt.Circle((x, y),
                     self.param['ballR'], 
                     color='k', linestyle='--',linewidth=2, fill=False)
         self.ax.add_patch(circ)
@@ -133,7 +133,7 @@ def extract_events_start(self): # param added for consistency, but unused here
         print(f"Processing shot index {si} (ShotID: {current_shot_id})...")
 
         # extract all events
-        extract_events(SA, si, param)
+        extract_events(SA, si, param, False)
         print(f"Hit data extracted for shot index {si}.")
 
     self.SA = SA
@@ -239,6 +239,10 @@ def extract_events(SA, si, param, plotflag=False):
         # Approximate Position of Ball at next time step
         tappr = Tall0[0] + np.diff(Tall0[0:2]) * tvec
         dT = np.diff(Tall0[0:2])
+        # print(f"Processing time step {ti}, tappr {tappr[0]}...")
+        # if ti == 34:
+        #     print("Warning: Time step exceeds 34, stopping processing.")
+            
         
         for bi in range(3):
             # Check if it is last index
@@ -336,10 +340,10 @@ def extract_events(SA, si, param, plotflag=False):
         for bi in range(3):
             # Initialize cushion distances dictionary with 4 directions
             b[bi]['cd'] = {
-                0: np.array(b[bi]['ya']) - param['ballR'],         # Bottom cushion
-                1: param['size'][1] - param['ballR'] - np.array(b[bi]['xa']),  # Right cushion
-                2: param['size'][0] - param['ballR'] - np.array(b[bi]['ya']),  # Top cushion
-                3: np.array(b[bi]['xa']) - param['ballR']          # Left cushion
+                0: np.array(b[bi]['ya']) - param['ballR'],         # Bottom cushion, short
+                1: param['size'][0] - param['ballR'] - np.array(b[bi]['xa']),  # Right cushion, long
+                2: param['size'][1] - param['ballR'] - np.array(b[bi]['ya']),  # Top cushion, short
+                3: np.array(b[bi]['xa']) - param['ballR']          # Left cushion, long
             }
 
         # Initialize hit tracking
@@ -366,10 +370,15 @@ def extract_events(SA, si, param, plotflag=False):
                 tc = 0.0
                 cushx = 0.0
                 cushy = 0.0
-                
-                # Bottom cushion (cii=0)
+
+                # check if in hitlist the last cushion hit with this cushion and this ball, was just one time step before
+                if hitlist and hitlist[-1][1] == bi and hitlist[-1][3] == cii and hitlist[-1][0] == tappr[-1]:
+                    continue
+
+                # Bottom cushion (cii=0), short
                 if checkdist and checkangle and cii == 0:
                     if vely < 0 and vely != 0:  # Moving downward
+
                         # Interpolate contact time
                         f = interp1d(cushion_dists, tappr, fill_value='extrapolate')
                         tc = float(f(0))
@@ -383,7 +392,7 @@ def extract_events(SA, si, param, plotflag=False):
                     if velx > 0 and velx != 0:  # Moving right
                         f = interp1d(cushion_dists, tappr, fill_value='extrapolate')
                         tc = float(f(0))
-                        cushx = param['size'][1] - param['ballR']
+                        cushx = param['size'][0] - param['ballR']
                         cushy = float(interp1d(tappr, b[bi]['ya'], fill_value='extrapolate')(tc))
                         checkcush = True
                         
@@ -392,7 +401,7 @@ def extract_events(SA, si, param, plotflag=False):
                     if vely > 0 and vely != 0:  # Moving upward
                         f = interp1d(cushion_dists, tappr, fill_value='extrapolate')
                         tc = float(f(0))
-                        cushy = param['size'][0] - param['ballR']
+                        cushy = param['size'][1] - param['ballR']
                         cushx = float(interp1d(tappr, b[bi]['xa'], fill_value='extrapolate')(tc))
                         checkcush = True
                         

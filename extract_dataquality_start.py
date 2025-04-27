@@ -99,27 +99,43 @@ def extract_dataquality_start(self):
                         SA['Data'].iloc[si, SA['Data'].columns.get_loc('Selected')] = True
                         break
 
+            # delete points which are lying outside the table (if any)
+            if err_code is None:            
+                ballR = param['ballR']
+                sizeX = param['size'][0] 
+                sizeY = param['size'][1]
+                
+                # Define the boundaries where the *center* of the ball should be
+                min_x = ballR
+                max_x = sizeX - ballR
+                min_y = ballR
+                max_y = sizeY - ballR
+
+                for bi in range(3):
+                    x_coords = SA['Shot'][si]['Ball'][bi]['x']
+                    y_coords = SA['Shot'][si]['Ball'][bi]['y']
+
+                # find and delete points outside the table
+                    mask = (x_coords >= min_x) & (x_coords <= max_x) & (y_coords >= min_y) & (y_coords <= max_y)
+                    SA['Shot'][si]['Ball'][bi]['x'] = x_coords[mask]
+                    SA['Shot'][si]['Ball'][bi]['y'] = y_coords[mask]
+                    SA['Shot'][si]['Ball'][bi]['t'] = SA['Shot'][si]['Ball'][bi]['t'][mask]
+
+
+
             # Check 5: Project Points slightly outside cushion back onto cushion edge
             if err_code is None:
                 # Note: The MATLAB code had 'tol = param.BallProjecttoCushionLimit;' but didn't use it here.
                 # It used hardcoded oncushion values based on ballR.
                 ballR = param['ballR']
-                sizeX = param['size'][0] # Typically width? MATLAB used size(2)
-                sizeY = param['size'][1] # Typically height? MATLAB used size(1) -> Check convention! Assuming size = [height, width]
-                
-                # Assuming param['size'] = [height, width] like typical image/matrix dims
-                # If param['size'] = [width, height] -> swap sizeX/sizeY
-                # Let's assume param['size'] = [height, width] based on common conventions. 
-                # But MATLAB code used size(2) for X limits and size(1) for Y limits, suggesting [Y, X] or [Height, Width]
-                # Let's follow the MATLAB indexing: size(2) -> X, size(1) -> Y
-                sizeX = param['size'][1] # Width
-                sizeY = param['size'][0] # Height
+                sizeX = param['size'][0] 
+                sizeY = param['size'][1]
                 
                 # Define the boundaries where the *center* of the ball should be
-                min_x = ballR + 0.1
-                max_x = sizeX - ballR - 0.1
-                min_y = ballR + 0.1
-                max_y = sizeY - ballR - 0.1
+                min_x = ballR
+                max_x = sizeX - ballR
+                min_y = ballR
+                max_y = sizeY - ballR
 
                 for bi in range(3):
                     x_coords = SA['Shot'][si]['Ball'][bi]['x']
@@ -152,7 +168,7 @@ def extract_dataquality_start(self):
                     min_dist_sq = (2 * ballR)**2
                     
                     # Check for overlap (dist < 2*ballR), allow for small tolerance
-                    if dist_sq < min_dist_sq - 1e-6: # Added tolerance for float comparison
+                    if dist_sq < min_dist_sq - 1e-9: # Added tolerance for float comparison
                         dist = np.sqrt(dist_sq)
                         overlap = (2 * ballR) - dist
                         correction_applied = True

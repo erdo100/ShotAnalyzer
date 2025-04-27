@@ -25,6 +25,7 @@ class plot_shot:
         self.master.protocol("WM_DELETE_WINDOW", self.close)
 
     def _setup_axes(self):
+        
         self.ax.set_xlim(0, self.param['size'][0])
         self.ax.set_ylim(0, self.param['size'][1])
         self.ax.set_xlabel('X-axis (m)')
@@ -69,7 +70,7 @@ class plot_shot:
 
     def _initialize_balls(self):
         self.ball_line = {}
-        self.ball_line[0], = self.ax.plot([], [], 'w-', label='Ball 0')
+        self.ball_line[0], = self.ax.plot([], [], 'w-', label='Ball 0', marker='o', markersize=5)
         self.ball_line[1], = self.ax.plot([], [], 'y-', label='Ball 1')
         self.ball_line[2], = self.ax.plot([], [], 'r-', label='Ball 2')
 
@@ -81,18 +82,28 @@ class plot_shot:
         self.ball_circ[2] = plt.Circle((0.800, 1.000), self.param['ballR'], 
                                      color='r', linewidth=2, fill=True)
 
+        
+        # plot table rectangle
+        self.ax.add_patch(plt.Rectangle((0, 0), self.param['size'][0], self.param['size'][1],
+                                      edgecolor='black', facecolor=(0.4, 0.4, 1.0), lw=2))
+        
+        # plot inner limits of ball center
+        self.ax.add_patch(plt.Rectangle((self.param['ballR'], self.param['ballR']),
+                                        self.param['size'][0] - self.param['ballR']*2, 
+                                        self.param['size'][1] - self.param['ballR']*2, 
+                                        edgecolor='black', facecolor=(0.4, 0.4, 1.0), lw=1, linestyle='--'))
         for circ in self.ball_circ.values():
             self.ax.add_patch(circ)
-
+        
     def plot(self, ball):
         # Update existing plot elements
         self.ball_line[0].set_data(ball[0]['x'], ball[0]['y'])
         self.ball_line[1].set_data(ball[1]['x'], ball[1]['y'])
         self.ball_line[2].set_data(ball[2]['x'], ball[2]['y'])
 
-        self.ball_circ[0].center = (ball[0]['x'][-1], ball[0]['y'][-1])
-        self.ball_circ[1].center = (ball[1]['x'][-1], ball[1]['y'][-1])
-        self.ball_circ[2].center = (ball[2]['x'][-1], ball[2]['y'][-1])
+        self.ball_circ[0].center = (ball[0]['x'][0], ball[0]['y'][0])
+        self.ball_circ[1].center = (ball[1]['x'][0], ball[1]['y'][0])
+        self.ball_circ[2].center = (ball[2]['x'][0], ball[2]['y'][0])
         self.canvas.draw_idle()
 
     def update(self):

@@ -21,8 +21,6 @@ class DataFrameViewer:
             # Table properties (adjusted for Python syntax)
         self.param = {
             "ver": "Shot Analyzer v0.43i_Python",
-            # Assuming [height, width] based on typical usage, but MATLAB code suggested [Y, X] -> [1420, 2840]
-            # Let's stick to MATLAB's apparent [height, width] based on index usage (size(1)=y, size(2)=x)
             "size": [1.420, 2.840],
             "ballR": 61.5 / 2000,
             # 'ballcirc' not directly used in translated functions, kept for reference
