@@ -103,7 +103,7 @@ class DataFrameViewer:
             
             # Update and refresh
             self.refresh_table()
-            
+            print("Gamefile loaded successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load gamefile:\n{str(e)}")
 
@@ -120,7 +120,7 @@ class DataFrameViewer:
             
             # Update and refresh table
             self.refresh_table()
-            messagebox.showinfo("Success", "Gamefile loaded successfully.")
+            print("Gamefile loaded successfully.")
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load gamefile:\n{str(e)}")
@@ -137,7 +137,7 @@ class DataFrameViewer:
             # Save the SA structure to a file using pickle
             with open(filepath, 'wb') as f:
                 pickle.dump(self.SA, f)
-            messagebox.showinfo("Success", "Gamefile exported successfully.")
+            print("Gamefile exported successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to export gamefile:\n{str(e)}") 
 
@@ -258,9 +258,20 @@ class DataFrameViewer:
             self.tree.delete(item)
 
         # Update both DataFrame and SA structure
-        self.df = self.df.drop(index=deleted_indices)
-        self.SA['Data'] = self.df  # Update the table in SA
-        print(f"Deleted {len(selected_items)} rows. Remaining: {len(self.df)}")
+        # self.df = self.df.drop(index=deleted_indices)
+        # self.SA['Data'] = self.df  # Update the table in SA
+        # delete all indices from SA['Shot'] and from Data table
+        for idx in deleted_indices:
+            if idx in self.SA['Data'].index:
+                self.SA['Data'].drop(idx, inplace=True)
+        for idx in sorted(deleted_indices, reverse=True):
+            if idx in self.SA['Shot']:
+                del self.SA['Shot'][idx]
+                self.SA['Data'].drop(idx, inplace=True)
+        
+        self.SA['Data'] = self.SA['Data'].reset_index(drop=True)
+                
+        print(f"Deleted {len(selected_items)} rows. Remaining: {len(self.SA['Shot'])}")
 
 
 
