@@ -77,12 +77,13 @@ def extract_shotdata_start(self):
         
     total_shots = len(SA['Data'])
     fully_evaluated_count = 0
-    
-    # Check current evaluation status
+      # Check current evaluation status and store initial state
+    initial_evaluated_shots = set()
     for si in range(total_shots):
         status = check_shot_evaluation_status(SA, si)
         if status['fully_evaluated']:
             fully_evaluated_count += 1
+            initial_evaluated_shots.add(si)
             
     print(f"Found {total_shots} total shots, {fully_evaluated_count} already fully evaluated.")
     
@@ -100,18 +101,32 @@ def extract_shotdata_start(self):
 
     # Step 3: Extract events (only for shots that need it)
     print("Extracting events...")
-    extract_events_start(self)
-
-    # Final status check
+    extract_events_start(self)    # Final status check and mark fully evaluated shots
     final_fully_evaluated_count = 0
+    newly_evaluated_shots = []
+    
     for si in range(total_shots):
         status = check_shot_evaluation_status(SA, si)
         if status['fully_evaluated']:
             final_fully_evaluated_count += 1
+            # If this shot wasn't fully evaluated before, mark it as interpreted
+            if si not in initial_evaluated_shots:
+                try:
+                    SA['Data'].iloc[si, SA['Data'].columns.get_loc('Interpreted')] = 1
+                    newly_evaluated_shots.append(si)
+                    print(f"Shot {si} marked as fully evaluated (Interpreted = 1)")
+                except Exception as e:
+                    print(f"Error setting Interpreted status for shot {si}: {e}")
             
-    newly_evaluated = final_fully_evaluated_count - fully_evaluated_count
+    newly_evaluated = len(newly_evaluated_shots)
     print(f"Shot data extraction process completed.")
     print(f"Processed {newly_evaluated} new shots. Total evaluated: {final_fully_evaluated_count}/{total_shots}")
+    
+    if newly_evaluated_shots:
+        print(f"Newly evaluated shots: {newly_evaluated_shots}")
+        
+    # Refresh the table display
+    self.refresh_table()
 
     # You can now access the processed data in SA
     # Example: print(self.SA['Data'].head())
