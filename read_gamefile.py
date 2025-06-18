@@ -16,8 +16,7 @@ def read_gamefile(filepath=None):
         filepath (str, optional): Path to a single JSON game file. If None,
                                 opens file dialog for multiple file selection.
 
-    Returns:
-        dict: A dictionary (SA) containing 'Shot' data (list of dicts)
+    Returns:        dict: A dictionary (SA) containing 'Shot' data (list of dicts)
               and 'Data' data (pandas DataFrame), or None if no valid
               shot data is found.
     """
@@ -25,7 +24,7 @@ def read_gamefile(filepath=None):
         # Allow user to select multiple JSON files
         filepaths = filedialog.askopenfilenames(
             title="Select JSON game files",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+            filetypes=[("Game files", "*.json *.txt"), ("JSON files", "*.json"), ("Text files", "*.txt"), ("All files", "*.*")]
         )
         
         if not filepaths:
@@ -104,14 +103,19 @@ def read_gamefile(filepath=None):
             'Set': all_Set_list,
             'CurrentInning': all_CurrentInning_list,
             'CurrentSeries': all_CurrentSeries_list,
-            'CurrentTotalPoints': all_CurrentTotalPoints_list,
-            'Point': all_Point_list
+            'CurrentTotalPoints': all_CurrentTotalPoints_list,            'Point': all_Point_list
         }
         combined_SA['Data'] = pd.DataFrame(df_data)
         # Ensure ShotID is integer if possible
         combined_SA['Data']['ShotID'] = pd.to_numeric(combined_SA['Data']['ShotID'], errors='coerce').fillna(0).astype(int)
         
-        print(f"Successfully combined {total_shots_processed} shots from {files_processed} files")
+        # Remove duplicates based on ShotID and sort by ShotID
+        combined_SA, duplicates_removed = remove_duplicates_and_sort(combined_SA)
+        
+        if duplicates_removed > 0:
+            print(f"Removed {duplicates_removed} duplicate shots based on ShotID")
+        
+        print(f"Successfully combined {len(combined_SA['Data'])} unique shots from {files_processed} files, sorted by ShotID")
         return combined_SA
     else:
         print("No valid shot data found in any of the selected files")
@@ -124,9 +128,8 @@ def _read_single_gamefile(filepath):
     This contains the original read_gamefile logic for processing one file.
     
     Args:
-        filepath (str): Path to the JSON game file.
-
-    Returns:        dict: A dictionary (SA) containing 'Shot' data (list of dicts)
+        filepath (str): Path to the JSON game file.    Returns:
+        dict: A dictionary (SA) containing 'Shot' data (list of dicts)
               and 'Data' data (pandas DataFrame), or None if no valid
               shot data is found.
     """
@@ -326,15 +329,58 @@ def _read_single_gamefile(filepath):
             'CurrentTotalPoints': CurrentTotalPoints_list,
             'Point': Point_list # Mapped from EntryType
             # Adding Player1 and Player2 might be useful for context
-            #'Player1': Player1_list,
-            #'Player2': Player2_list
+            #'Player1': Player1_list,            #'Player2': Player2_list
         }
         SA['Data'] = pd.DataFrame(df_data)
         # Ensure ShotID is integer if possible
         SA['Data']['ShotID'] = pd.to_numeric(SA['Data']['ShotID'], errors='coerce').fillna(0).astype(int)
-        print(f"Successfully read {len(SA['Data'])} shots from {filepath}")
+        
+        # Remove duplicates based on ShotID and sort by ShotID
+        SA, duplicates_removed = remove_duplicates_and_sort(SA)
+        
+        if duplicates_removed > 0:
+            print(f"Removed {duplicates_removed} duplicate shots based on ShotID")
+        
+        print(f"Successfully read {len(SA['Data'])} unique shots from {filepath}, sorted by ShotID")
         return SA
     else:
         print(f"No valid shot data found or processed in {filepath}")
         return None
+
+def remove_duplicates_and_sort(SA_dict):
+    """
+    Remove duplicate shots based on ShotID and sort by ShotID.
+    
+    Args:
+        SA_dict (dict): Dictionary containing 'Shot' and 'Data' keys
+        
+    Returns:
+        dict: Updated SA_dict with duplicates removed and data sorted by ShotID
+        int: Number of duplicates removed
+    """
+    if SA_dict is None or SA_dict.get('Data') is None:
+        return SA_dict, 0
+    
+    original_count = len(SA_dict['Data'])
+    
+    # Remove duplicates based on ShotID, keeping the first occurrence
+    remaining_mask = ~SA_dict['Data'].duplicated(subset=['ShotID'], keep='first')
+    remaining_indices = remaining_mask[remaining_mask].index.tolist()
+    
+    # Update DataFrame
+    SA_dict['Data'] = SA_dict['Data'][remaining_mask].reset_index(drop=True)
+    
+    # Update corresponding shot data
+    SA_dict['Shot'] = [SA_dict['Shot'][i] for i in remaining_indices]
+    
+    # Sort by ShotID
+    sort_indices = SA_dict['Data']['ShotID'].argsort()
+    SA_dict['Data'] = SA_dict['Data'].iloc[sort_indices].reset_index(drop=True)
+    
+    # Reorder shot data to match the sorted DataFrame
+    SA_dict['Shot'] = [SA_dict['Shot'][i] for i in sort_indices]
+    
+    duplicates_removed = original_count - len(SA_dict['Data'])
+    
+    return SA_dict, duplicates_removed
 

@@ -8,7 +8,7 @@ import pandas as pd
 import pickle
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from read_gamefile import read_gamefile  
+from read_gamefile import read_gamefile, remove_duplicates_and_sort  
 from plot_shot import plot_shot
 from extract_dataquality_start import extract_dataquality_start
 from extract_b1b2b3_start import extract_b1b2b3_start
@@ -117,8 +117,7 @@ class DataFrameViewer:
             if new_data is not None:
                 # Append the new shot data to existing data
                 self.SA['Shot'].extend(new_data['Shot'])
-                
-                # Append the new DataFrame data to existing DataFrame
+                  # Append the new DataFrame data to existing DataFrame
                 if new_data['Data'] is not None:
                     if self.SA['Data'] is not None:
                         # Concatenate the DataFrames
@@ -127,11 +126,17 @@ class DataFrameViewer:
                     else:
                         # If no existing DataFrame, use the new one
                         self.SA['Data'] = new_data['Data']
+                  # Remove duplicates based on ShotID and sort by ShotID
+                if self.SA['Data'] is not None:
+                    self.SA, duplicates_removed = remove_duplicates_and_sort(self.SA)
+                    
+                    if duplicates_removed > 0:
+                        print(f"Removed {duplicates_removed} duplicate shots based on ShotID")
                 
                 # Update and refresh the display
                 self.refresh_table()
                 print(f"Successfully appended {len(new_data['Data'])} shots to existing data.")
-                print(f"Total shots now: {len(self.SA['Data'])}")
+                print(f"Total shots now: {len(self.SA['Data'])} (sorted by ShotID)")
             else:
                 print("No new files were loaded.")
         except Exception as e:
