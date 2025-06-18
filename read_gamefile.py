@@ -3,18 +3,130 @@ import os
 import pandas as pd
 import numpy as np
 import copy
+from tkinter import filedialog
 
 
-def read_gamefile(filepath):
+def read_gamefile(filepath=None):
     """
-    Reads game data from a JSON file, extracts relevant information,
-    and structures it for analysis.
+    Reads game data from JSON file(s), extracts relevant information,
+    and structures it for analysis. If no filepath is provided, opens
+    a file dialog to select multiple JSON files.
 
     Args:
-        filepath (str): Path to the JSON game file.
+        filepath (str, optional): Path to a single JSON game file. If None,
+                                opens file dialog for multiple file selection.
 
     Returns:
         dict: A dictionary (SA) containing 'Shot' data (list of dicts)
+              and 'Data' data (pandas DataFrame), or None if no valid
+              shot data is found.
+    """
+    if filepath is None:
+        # Allow user to select multiple JSON files
+        filepaths = filedialog.askopenfilenames(
+            title="Select JSON game files",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        
+        if not filepaths:
+            print("No files selected.")
+            return None
+    else:
+        # Single file mode for backward compatibility
+        filepaths = [filepath]
+    
+    # Initialize combined data structure
+    combined_SA = {'Shot': [], 'Data': None}
+    
+    # Lists to build the combined DataFrame columns
+    all_Selected_list = []
+    all_Filename_list = []
+    all_GameType_list = []
+    all_Player1_list = []
+    all_Player2_list = []
+    all_Set_list = []
+    all_ShotID_list = []
+    all_CurrentInning_list = []
+    all_CurrentSeries_list = []
+    all_CurrentTotalPoints_list = []
+    all_Point_list = []
+    all_Player_list = []
+    all_ErrorID_list = []
+    all_ErrorText_list = []
+    all_Interpreted_list = []
+    all_Mirrored_list = []
+    
+    total_shots_processed = 0
+    files_processed = 0
+    
+    # Process each selected file
+    for current_filepath in filepaths:
+        print(f"Processing file: {current_filepath}")
+        file_result = _read_single_gamefile(current_filepath)
+        
+        if file_result is not None:
+            # Append shot data
+            combined_SA['Shot'].extend(file_result['Shot'])
+            
+            # Append DataFrame data
+            if file_result['Data'] is not None:
+                df = file_result['Data']
+                all_Selected_list.extend(df['Selected'].tolist())
+                all_ShotID_list.extend(df['ShotID'].tolist())
+                all_Mirrored_list.extend(df['Mirrored'].tolist())
+                all_Filename_list.extend(df['Filename'].tolist())
+                all_GameType_list.extend(df['GameType'].tolist())
+                all_Interpreted_list.extend(df['Interpreted'].tolist())
+                all_Player_list.extend(df['Player'].tolist())
+                all_ErrorID_list.extend(df['ErrorID'].tolist())
+                all_ErrorText_list.extend(df['ErrorText'].tolist())
+                all_Set_list.extend(df['Set'].tolist())
+                all_CurrentInning_list.extend(df['CurrentInning'].tolist())
+                all_CurrentSeries_list.extend(df['CurrentSeries'].tolist())
+                all_CurrentTotalPoints_list.extend(df['CurrentTotalPoints'].tolist())
+                all_Point_list.extend(df['Point'].tolist())
+                
+                total_shots_processed += len(df)
+                files_processed += 1
+    
+    if total_shots_processed > 0:
+        # Create the combined Pandas DataFrame
+        df_data = {
+            'Selected': all_Selected_list,
+            'ShotID': all_ShotID_list,
+            'Mirrored': all_Mirrored_list,
+            'Filename': all_Filename_list,
+            'GameType': all_GameType_list,
+            'Interpreted': all_Interpreted_list,
+            'Player': all_Player_list,
+            'ErrorID': all_ErrorID_list,
+            'ErrorText': all_ErrorText_list,
+            'Set': all_Set_list,
+            'CurrentInning': all_CurrentInning_list,
+            'CurrentSeries': all_CurrentSeries_list,
+            'CurrentTotalPoints': all_CurrentTotalPoints_list,
+            'Point': all_Point_list
+        }
+        combined_SA['Data'] = pd.DataFrame(df_data)
+        # Ensure ShotID is integer if possible
+        combined_SA['Data']['ShotID'] = pd.to_numeric(combined_SA['Data']['ShotID'], errors='coerce').fillna(0).astype(int)
+        
+        print(f"Successfully combined {total_shots_processed} shots from {files_processed} files")
+        return combined_SA
+    else:
+        print("No valid shot data found in any of the selected files")
+        return None
+
+
+def _read_single_gamefile(filepath):
+    """
+    Helper function to read a single JSON game file.
+    This contains the original read_gamefile logic for processing one file.
+    
+    Args:
+        filepath (str): Path to the JSON game file.
+
+    Returns:        dict: A dictionary (SA) containing 'Shot' data (list of dicts)
               and 'Data' data (pandas DataFrame), or None if no valid
               shot data is found.
     """

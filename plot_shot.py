@@ -71,8 +71,8 @@ class plot_shot:
     def _initialize_balls(self):
         self.ball_line = {}
         self.ball_line[0], = self.ax.plot([], [], 'w-', label='Ball 0', marker='o', markersize=5)
-        self.ball_line[1], = self.ax.plot([], [], 'y-', label='Ball 1')
-        self.ball_line[2], = self.ax.plot([], [], 'r-', label='Ball 2')
+        self.ball_line[1], = self.ax.plot([], [], 'y-', label='Ball 1', marker='o', markersize=5)
+        self.ball_line[2], = self.ax.plot([], [], 'r-', label='Ball 2', marker='o', markersize=5)
 
         self.ball_circ = {}
         self.ball_circ[0] = plt.Circle((0.200, 0.220), self.param['ballR'], 

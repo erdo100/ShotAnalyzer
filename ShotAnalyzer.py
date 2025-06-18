@@ -67,6 +67,7 @@ class DataFrameViewer:
         # New File menu
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Load JSON gamefile", command=self.load_jsonfile)
+        file_menu.add_command(label="Append Json file", command=self.append_jsonfile)
         file_menu.add_command(label="Load Gamefile", command=self.load_gamefile)
         file_menu.add_command(label="Save Gamefile", command=self.save_gamefile)
         file_menu.add_command(label="Export to CSV", command=self.export_csv)
@@ -89,23 +90,52 @@ class DataFrameViewer:
         self.root.config(menu=menubar)
 
     def load_jsonfile(self):
-        filepath = filedialog.askopenfilename(
-            title="Select Gamefile",
-            filetypes=[("Game files", "*.txt *.csv"), ("All files", "*.*")]
-        )
-        
-        if not filepath:
-            return
-
+        # Use the updated read_gamefile function that supports multiple file selection
         try:
-            # Call the function directly
-            self.SA = read_gamefile(filepath)
+            # Call the function without filepath to trigger file selection dialog
+            self.SA = read_gamefile()
             
-            # Update and refresh
-            self.refresh_table()
-            print("Gamefile loaded successfully.")
+            if self.SA is not None:
+                # Update and refresh
+                self.refresh_table()
+                print("Gamefile(s) loaded successfully.")
+            else:
+                print("No files were loaded.")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load gamefile:\n{str(e)}")
+            messagebox.showerror("Error", f"Failed to load gamefile(s):\n{str(e)}")
+
+    def append_jsonfile(self):
+        # Check if there's existing data to append to
+        if not hasattr(self, 'SA') or self.SA is None:
+            messagebox.showwarning("Warning", "No existing data found. Please load a gamefile first.")
+            return
+            
+        try:
+            # Get new data from selected JSON files
+            new_data = read_gamefile()
+            
+            if new_data is not None:
+                # Append the new shot data to existing data
+                self.SA['Shot'].extend(new_data['Shot'])
+                
+                # Append the new DataFrame data to existing DataFrame
+                if new_data['Data'] is not None:
+                    if self.SA['Data'] is not None:
+                        # Concatenate the DataFrames
+                        self.SA['Data'] = pd.concat([self.SA['Data'], new_data['Data']], 
+                                                  ignore_index=True)
+                    else:
+                        # If no existing DataFrame, use the new one
+                        self.SA['Data'] = new_data['Data']
+                
+                # Update and refresh the display
+                self.refresh_table()
+                print(f"Successfully appended {len(new_data['Data'])} shots to existing data.")
+                print(f"Total shots now: {len(self.SA['Data'])}")
+            else:
+                print("No new files were loaded.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to append gamefile(s):\n{str(e)}")
 
     def load_gamefile(self):
         # Load SA using pickle from disk using filepicker
@@ -258,14 +288,8 @@ class DataFrameViewer:
             self.tree.delete(item)
 
         # Update both DataFrame and SA structure
-        # self.df = self.df.drop(index=deleted_indices)
-        # self.SA['Data'] = self.df  # Update the table in SA
-        # delete all indices from SA['Shot'] and from Data table
-        for idx in deleted_indices:
-            if idx in self.SA['Data'].index:
-                self.SA['Data'].drop(idx, inplace=True)
         for idx in sorted(deleted_indices, reverse=True):
-            if idx in self.SA['Shot']:
+            if idx in range(len(self.SA['Shot'])):
                 del self.SA['Shot'][idx]
                 self.SA['Data'].drop(idx, inplace=True)
         
