@@ -112,14 +112,15 @@ def extract_dataquality_start(self):
                 max_y = sizeY - ballR
 
                 for bi in range(3):
-                    x_coords = SA['Shot'][si]['Ball'][bi]['x']
-                    y_coords = SA['Shot'][si]['Ball'][bi]['y']
+                    x_coords = np.array(SA['Shot'][si]['Ball'][bi]['x'])
+                    y_coords = np.array(SA['Shot'][si]['Ball'][bi]['y'])
+                    t_coords = np.array(SA['Shot'][si]['Ball'][bi]['t'])
 
-                # find and delete points outside the table
+                    # find and delete points outside the table
                     mask = (x_coords >= min_x) & (x_coords <= max_x) & (y_coords >= min_y) & (y_coords <= max_y)
                     SA['Shot'][si]['Ball'][bi]['x'] = x_coords[mask]
                     SA['Shot'][si]['Ball'][bi]['y'] = y_coords[mask]
-                    SA['Shot'][si]['Ball'][bi]['t'] = SA['Shot'][si]['Ball'][bi]['t'][mask]
+                    SA['Shot'][si]['Ball'][bi]['t'] = t_coords[mask]
 
 
 
@@ -138,8 +139,8 @@ def extract_dataquality_start(self):
                 max_y = sizeY - ballR
 
                 for bi in range(3):
-                    x_coords = SA['Shot'][si]['Ball'][bi]['x']
-                    y_coords = SA['Shot'][si]['Ball'][bi]['y']
+                    x_coords = np.array(SA['Shot'][si]['Ball'][bi]['x'])
+                    y_coords = np.array(SA['Shot'][si]['Ball'][bi]['y'])
 
                     # Clip coordinates to be within the boundaries
                     x_coords = np.clip(x_coords, min_x, max_x)
@@ -208,8 +209,9 @@ def extract_dataquality_start(self):
             # Check 7: Time linearity check and correction
             if err_code is None:
                 current_errcode = base_errcode + 6
+                
                 for bi in range(3):
-                    t = SA['Shot'][si]['Ball'][bi]['t']
+                    t = np.array(SA['Shot'][si]['Ball'][bi]['t'])
                     if len(t) < 2: continue # Need at least two points to check diff
 
                     dt = np.diff(t)
@@ -312,9 +314,9 @@ def extract_dataquality_start(self):
                     corrected = True # Flag to re-iterate if a point is deleted
                     while corrected:
                          corrected = False
-                         t = SA['Shot'][si]['Ball'][bi]['t']
-                         x = SA['Shot'][si]['Ball'][bi]['x']
-                         y = SA['Shot'][si]['Ball'][bi]['y']
+                         t = np.array(SA['Shot'][si]['Ball'][bi]['t'])
+                         x = np.array(SA['Shot'][si]['Ball'][bi]['x'])
+                         y = np.array(SA['Shot'][si]['Ball'][bi]['y'])
                          n_points = len(t)
 
                          if n_points < 3: break # Need at least 3 points
@@ -360,9 +362,9 @@ def extract_dataquality_start(self):
                 max_vel_limit = param.get('MaxVelocity', 12000)
 
                 for bi in range(3):
-                    t = SA['Shot'][si]['Ball'][bi]['t']
-                    x = SA['Shot'][si]['Ball'][bi]['x']
-                    y = SA['Shot'][si]['Ball'][bi]['y']
+                    t = np.array(SA['Shot'][si]['Ball'][bi]['t'])
+                    x = np.array(SA['Shot'][si]['Ball'][bi]['x'])
+                    y = np.array(SA['Shot'][si]['Ball'][bi]['y'])
 
                     if len(t) < 2: continue # Need at least two points
 

@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import copy
 from scipy.interpolate import interp1d
 import os
@@ -126,15 +127,32 @@ def extract_events_start(self): # param added for consistency, but unused here
     if 'B1hit' not in SA['Data'].columns:
         SA['Data']['B1hit'] = ''
         SA['Data']['B2hit'] = ''
-        SA['Data']['B3hit'] = ''
-
-    # Iterate through shots using the DataFrame index
+        SA['Data']['B3hit'] = ''    # Iterate through shots using the DataFrame index
+    processed_count = 0
+    skipped_count = 0
+    
     for si, current_shot_id in enumerate(SA['Data']['ShotID']):
         print(f"Processing shot index {si} (ShotID: {current_shot_id})...")
+
+        # Check if this shot has already been processed for events
+        # A shot is considered processed if it has hit data in B1hit, B2hit, or B3hit columns
+        has_hit_data = (
+            (SA['Data'].iloc[si]['B1hit'] if pd.notna(SA['Data'].iloc[si]['B1hit']) else '') != '' or
+            (SA['Data'].iloc[si]['B2hit'] if pd.notna(SA['Data'].iloc[si]['B2hit']) else '') != '' or
+            (SA['Data'].iloc[si]['B3hit'] if pd.notna(SA['Data'].iloc[si]['B3hit']) else '') != ''
+        )
+        
+        if has_hit_data:
+            print(f"Shot index {si} already has hit data - skipping...")
+            skipped_count += 1
+            continue
 
         # extract all events
         extract_events(SA, si, param, False)
         print(f"Hit data extracted for shot index {si}.")
+        processed_count += 1
+    
+    print(f"Event extraction completed: {processed_count} shots processed, {skipped_count} shots skipped (already had hit data).")
 
     self.SA = SA
 

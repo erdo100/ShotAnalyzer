@@ -5,34 +5,113 @@ from extract_b1b2b3_start import extract_b1b2b3_start
 from extract_events_start import extract_events_start
 from extract_dataquality_start import extract_dataquality_start
 
+def check_shot_evaluation_status(SA, si):
+    """
+    Check if a shot has been fully evaluated by examining populated columns.
+    
+    Args:
+        SA: Shot Analyzer data structure
+        si: Shot index
+        
+    Returns:
+        dict: Status of different evaluation steps
+    """
+    status = {
+        'data_quality': False,
+        'b1b2b3': False,  
+        'events': False,
+        'fully_evaluated': False
+    }
+    
+    try:
+        # Check if data quality has been processed (has ErrorID/ErrorText or no errors)
+        if 'ErrorID' in SA['Data'].columns and 'ErrorText' in SA['Data'].columns:
+            import pandas as pd
+            status['data_quality'] = (
+                pd.notna(SA['Data'].iloc[si]['ErrorID']) or 
+                pd.notna(SA['Data'].iloc[si]['ErrorText']) or
+                SA['Data'].iloc[si]['Interpreted'] != 0
+            )
+        
+        # Check if B1B2B3 has been processed
+        if 'B1B2B3' in SA['Data'].columns:
+            import pandas as pd
+            b1b2b3_val = SA['Data'].iloc[si]['B1B2B3']
+            status['b1b2b3'] = (
+                pd.notna(b1b2b3_val) and 
+                b1b2b3_val != '' and 
+                b1b2b3_val is not None
+            )
+            
+        # Check if events have been processed
+        if all(col in SA['Data'].columns for col in ['B1hit', 'B2hit', 'B3hit']):
+            import pandas as pd
+            status['events'] = any([
+                (pd.notna(SA['Data'].iloc[si]['B1hit']) and SA['Data'].iloc[si]['B1hit'] != ''),
+                (pd.notna(SA['Data'].iloc[si]['B2hit']) and SA['Data'].iloc[si]['B2hit'] != ''), 
+                (pd.notna(SA['Data'].iloc[si]['B3hit']) and SA['Data'].iloc[si]['B3hit'] != '')
+            ])
+            
+        status['fully_evaluated'] = all([status['data_quality'], status['b1b2b3'], status['events']])
+        
+    except Exception as e:
+        print(f"Error checking evaluation status for shot {si}: {e}")
+        
+    return status
+
 
 # Main execution function (similar to the original script)
 def extract_shotdata_start(self):
     """
     Extract shot data by sequentially calling the required functions.
-
-    Args:
-        filepath (str): Path to the game file.
+    Only processes shots that haven't been fully evaluated yet.
     """
 
     print("Starting shot data extraction...")
+    
+    # Get initial statistics
+    SA = self.SA
+    if SA is None or 'Data' not in SA or len(SA['Data']) == 0:
+        print("No shot data to process.")
+        return
+        
+    total_shots = len(SA['Data'])
+    fully_evaluated_count = 0
+    
+    # Check current evaluation status
+    for si in range(total_shots):
+        status = check_shot_evaluation_status(SA, si)
+        if status['fully_evaluated']:
+            fully_evaluated_count += 1
+            
+    print(f"Found {total_shots} total shots, {fully_evaluated_count} already fully evaluated.")
+    
+    if fully_evaluated_count == total_shots:
+        print("All shots are already fully evaluated. No processing needed.")
+        return
 
-    # Step 2: Extract data quality
+    # Step 1: Extract data quality (only for shots that need it)
     print("Extracting data quality...")
     extract_dataquality_start(self)
 
-    # Step 3: Extract B1B2B3 start (Placeholder)
+    # Step 2: Extract B1B2B3 start (only for shots that need it)
     print("Extracting B1B2B3 start...")
     extract_b1b2b3_start(self)
 
-    # Step 4: Extract events (Placeholder)
+    # Step 3: Extract events (only for shots that need it)
     print("Extracting events...")
-    
-    extract_events_start(self)  # Enable plotting by setting plotflag to True
+    extract_events_start(self)
 
-    print("Shot data extraction process completed.")
-
-
+    # Final status check
+    final_fully_evaluated_count = 0
+    for si in range(total_shots):
+        status = check_shot_evaluation_status(SA, si)
+        if status['fully_evaluated']:
+            final_fully_evaluated_count += 1
+            
+    newly_evaluated = final_fully_evaluated_count - fully_evaluated_count
+    print(f"Shot data extraction process completed.")
+    print(f"Processed {newly_evaluated} new shots. Total evaluated: {final_fully_evaluated_count}/{total_shots}")
 
     # You can now access the processed data in SA
     # Example: print(self.SA['Data'].head())

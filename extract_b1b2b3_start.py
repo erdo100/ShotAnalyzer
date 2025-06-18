@@ -44,12 +44,24 @@ def extract_b1b2b3_start(self): # param added for consistency, but unused here
 
     selected_count = 0
     processed_count = 0
-
-
+    skipped_count = 0
     # Iterate through shots using the DataFrame index
     for si, current_shot_id in enumerate(SA['Data']['ShotID']):
         print(f"Processing shot index {si} (ShotID: {current_shot_id})...")
         try:
+            # Check if this shot has already been processed for B1B2B3
+            # A shot is considered processed if it has a non-empty B1B2B3 value
+            has_b1b2b3_data = (
+                varname in SA['Data'].columns and 
+                pd.notna(SA['Data'].iloc[si][varname]) and 
+                SA['Data'].iloc[si][varname] != '' and 
+                SA['Data'].iloc[si][varname] is not None            )
+            
+            if has_b1b2b3_data:
+                print(f"Shot index {si} already has B1B2B3 data ({SA['Data'].iloc[si][varname]}) - skipping...")
+                skipped_count += 1
+                continue
+                
             # Check if the shot has already been interpreted (skip if so)
             if SA['Data'].iloc[si]['Interpreted'] == 0:
                 processed_count += 1
@@ -58,18 +70,22 @@ def extract_b1b2b3_start(self): # param added for consistency, but unused here
                 b1b2b3_result, b1b2b3_num, err_info = extract_b1b2b3(current_shot_data)
 
                 if err_info['code'] is not None:
-                    print(f"ShotIndex {si}: Error {err_info['code']} - {err_info['text']}")
-                # Update the table with the result
+                    print(f"ShotIndex {si}: Error {err_info['code']} - {err_info['text']}")                # Update the table with the result
                 SA['Data'].loc[SA['Data'].index[si], varname] = b1b2b3_result
-
+                
                 #correct for b2 and b3 the trajectory data so that time is added before the hit
                 for bi in range(1, 3):
-                    SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['t'] = \
-                        np.insert(SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['t'], 1, SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['t'][1] - 0.0001)
-                    SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['x'] = \
-                        np.insert(SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['x'], 1, SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['x'][0])
-                    SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['y'] = \
-                        np.insert(SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['y'], 1, SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['y'][0])
+                    # Check if the ball has enough data points before trying to access them
+                    ball_data = SA['Shot'][si]['Ball'][b1b2b3_num[bi]]
+                    if len(ball_data['t']) > 1:  # Need at least 2 points
+                        SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['t'] = \
+                            np.insert(ball_data['t'], 1, ball_data['t'][1] - 0.0001)
+                        SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['x'] = \
+                            np.insert(ball_data['x'], 1, ball_data['x'][0])
+                        SA['Shot'][si]['Ball'][b1b2b3_num[bi]]['y'] = \
+                            np.insert(ball_data['y'], 1, ball_data['y'][0])
+                    else:
+                        print(f"Warning: Ball {b1b2b3_num[bi]} has insufficient data points for trajectory correction")
                     
                 # Update error info and selection status if an error occurred
                 if err_info['code'] is not None:
@@ -99,12 +115,10 @@ def extract_b1b2b3_start(self): # param added for consistency, but unused here
              SA['Data'].loc[SA['Data'].index[si], 'ErrorText'] = f'Unexpected error during B1B2B3: {e}'
              SA['Data'].loc[SA['Data'].index[si], 'Selected'] = True
              selected_count +=1
-
-
     # Update the total selected count based on the current state of the 'Selected' column
     final_selected_count = SA['Data']['Selected'].sum()
-
-    print(f"Processed {processed_count} uninterpreted shots for B1B2B3.")
+    
+    print(f"B1B2B3 extraction completed: {processed_count} shots processed, {skipped_count} shots skipped (already had B1B2B3 data).")
     # print(f"{selected_count} shots newly marked as selected due to B1B2B3 errors.")
     print(f'{final_selected_count}/{num_shots} total shots selected (marked with errors/warnings)')
 
