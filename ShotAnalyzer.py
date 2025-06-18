@@ -292,7 +292,13 @@ class DataFrameViewer:
 
         # Get and plot current shot data
         current_shot = self.SA["Shot"][idx]['Ball']
-        self.ps.plot(current_shot)  # Update existing plot
+        
+        # Check if hit events data is available
+        hit_data = None
+        if 'hit' in self.SA["Shot"][idx]:
+            hit_data = self.SA["Shot"][idx]['hit']
+        
+        self.ps.plot(current_shot, hit_data)  # Update existing plot with hit events
         self.ps.update()  # Trigger canvas update
 
 

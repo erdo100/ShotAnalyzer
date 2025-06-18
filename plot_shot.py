@@ -80,7 +80,10 @@ class plot_shot:
         self.ball_circ[1] = plt.Circle((0.100, 0.500), self.param['ballR'], 
                                      color='y', linewidth=2, fill=True)
         self.ball_circ[2] = plt.Circle((0.800, 1.000), self.param['ballR'], 
-                                     color='r', linewidth=2, fill=True)
+                                     color='r', linewidth=2, fill=True)        # Initialize hit event circles
+        self.hit_events = {}
+        for bi in range(3):
+            self.hit_events[bi] = []  # List to store circle patches
 
         
         # plot table rectangle
@@ -95,7 +98,7 @@ class plot_shot:
         for circ in self.ball_circ.values():
             self.ax.add_patch(circ)
         
-    def plot(self, ball):
+    def plot(self, ball, hit=None):
         # Update existing plot elements
         self.ball_line[0].set_data(ball[0]['x'], ball[0]['y'])
         self.ball_line[1].set_data(ball[1]['x'], ball[1]['y'])
@@ -104,7 +107,59 @@ class plot_shot:
         self.ball_circ[0].center = (ball[0]['x'][0], ball[0]['y'][0])
         self.ball_circ[1].center = (ball[1]['x'][0], ball[1]['y'][0])
         self.ball_circ[2].center = (ball[2]['x'][0], ball[2]['y'][0])
+          # Update hit event circles if hit data is available and valid
+        # First, remove existing hit event circles
+        for bi in range(3):
+            for circle in self.hit_events[bi]:
+                circle.remove()
+            self.hit_events[bi].clear()
+        
+        # Only plot hit events if evaluations have been done and events are available
+        if hit is not None and self._are_hit_events_valid(hit):
+            for bi in range(3):
+                if bi in hit and 'XPos' in hit[bi] and 'YPos' in hit[bi]:
+                    # Check if there are actual hit events (more than just the starting position)
+                    if len(hit[bi]['XPos']) > 1:
+                        # Extract hit positions, skipping the first position (starting position)
+                        for i in range(1, len(hit[bi]['XPos'])):  # Skip index 0 (starting position)
+                            x_pos = hit[bi]['XPos'][i]
+                            y_pos = hit[bi]['YPos'][i]
+                            
+                            # Handle case where positions might be lists or scalars
+                            x_positions = x_pos if isinstance(x_pos, list) else [x_pos]
+                            y_positions = y_pos if isinstance(y_pos, list) else [y_pos]
+                            
+                            # Create circles for each hit position
+                            for x, y in zip(x_positions, y_positions):
+                                circle = plt.Circle((x, y), self.param['ballR'], 
+                                                  color='black', linewidth=1, fill=False)
+                                self.ax.add_patch(circle)
+                                self.hit_events[bi].append(circle)        
         self.canvas.draw_idle()
+
+    def _are_hit_events_valid(self, hit):
+        """
+        Check if hit events have been properly extracted and are valid for plotting.
+        Returns True only if the hit data contains actual events (not just initial state).
+        """
+        if not hit:
+            return False
+        
+        # Check if any ball has hit events beyond the initial position
+        for bi in range(3):
+            if (bi in hit and 
+                'XPos' in hit[bi] and 
+                'YPos' in hit[bi] and 
+                'with' in hit[bi]):
+                
+                # Check if there are hit events beyond the starting position
+                if len(hit[bi]['XPos']) > 1:
+                    # Check if there are actual hit types recorded (not just initial '-')
+                    hit_types = hit[bi]['with']
+                    if len(hit_types) > 1 and any(h != '-' for h in hit_types[1:]):
+                        return True
+        
+        return False
 
     def update(self):
         self.canvas.draw_idle()
