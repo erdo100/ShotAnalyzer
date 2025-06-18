@@ -54,11 +54,12 @@ class DataFrameViewer:
         # Create plot window and visualization
         self.plot_window = tk.Toplevel(root)
         self.ps = plot_shot(self.param, master=self.plot_window)
-        
-        # Event bindings
+          # Event bindings
         self.tree.bind('<<TreeviewSelect>>', self.on_tree_select)
         self.tree.bind('<Up>', self.handle_keypress)
         self.tree.bind('<Down>', self.handle_keypress)
+        self.tree.bind('<space>', self.handle_space_keypress)
+        self.tree.focus_set()  # Ensure the treeview can receive keyboard focus
         self.current_selection = None
 
     def setup_menu(self):
@@ -244,6 +245,22 @@ class DataFrameViewer:
     def handle_keypress(self, event):
         if event.keysym in ('Up', 'Down'):
             self.root.after(10, self.update_plot_after_move)
+
+    def handle_space_keypress(self, event):
+        """Handle space bar press to toggle checkboxes for selected rows"""
+        selected_items = self.tree.selection()
+        if selected_items:
+            # Toggle checkboxes for all selected rows
+            for item in selected_items:
+                self.toggle_checkbox(item)
+        else:
+            # If no selection, toggle the focused item
+            focused_item = self.tree.focus()
+            if focused_item:
+                self.toggle_checkbox(focused_item)
+        
+        # Prevent default space bar behavior (if any)
+        return "break"
 
     def update_plot_after_move(self):
         selected_item = self.tree.selection()
