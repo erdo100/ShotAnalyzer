@@ -175,11 +175,34 @@ class DataFrameViewer:
                 pickle.dump(self.SA, f)
             print("Gamefile exported successfully.")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to export gamefile:\n{str(e)}") 
+            messagebox.showerror("Error", f"Failed to export gamefile:\n{str(e)}")
 
     def export_csv(self):
+        """Export the current DataFrame to CSV file"""
         print("Menu click Export CSV")
-        pass
+        
+        if self.SA['Data'].empty:
+            messagebox.showwarning("Warning", "No data to export. Please load data first.")
+            return
+            
+        try:
+            # Ask user for file location
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".csv",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+                title="Save CSV file"
+            )
+            
+            if file_path:
+                # Export DataFrame to CSV
+                self.SA['Data'].to_csv(file_path, index=False)
+                print(f"Data exported to: {file_path}")
+            else:
+                print("Export cancelled by user")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export CSV file:\n{str(e)}")
+            print(f"Export error: {str(e)}")
 
     def refresh_table(self):
         # Clear existing items
