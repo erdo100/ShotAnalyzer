@@ -249,18 +249,159 @@ def extract_events(SA, si, param, plotflag=False):
     # Initialize b as a list of dictionaries with required fields
     b = [{'vt1': 0.0, 'v1': [0.0, 0.0], 'v2': [0.0, 0.0], 'vt2': 0.0, 'xa': 0.0, 'ya': 0.0} for _ in range(3)]
 
+    # ===== PHASE 1: IDENTIFY CUSHION HITS FOR EACH BALL INDIVIDUALLY =====
+    print("Phase 1: Identifying cushion hits for each ball...")
+    
+    # Initialize cushion hit storage for each ball
+    cushion_hits = {bi: [] for bi in range(3)}
+    
+    # Process each ball individually for cushion hits
+    for bi in range(3):
+        print(f"  Processing cushion hits for ball {bi}...")
+        
+        # Process through this ball's time steps, starting from ti=1 to avoid ti-1 < 0
+        for ti in range(1, len(ball0[bi]['t']) - 1):
+            # Calculate velocity for the current step using ti-1 to ti
+            dt_current = ball0[bi]['t'][ti] - ball0[bi]['t'][ti-1]
+            if dt_current <= 0:
+                continue
+                
+            vx = (ball0[bi]['x'][ti] - ball0[bi]['x'][ti-1]) / dt_current
+            vy = (ball0[bi]['y'][ti] - ball0[bi]['y'][ti-1]) / dt_current
+            
+            # Calculate next time step duration (ti to ti+1)
+            dt_next = ball0[bi]['t'][ti+1] - ball0[bi]['t'][ti]
+            if dt_next <= 0:
+                continue
+            
+            # Calculate angle change (simplified)
+            if ti > 1:
+                prev_dt = ball0[bi]['t'][ti-1] - ball0[bi]['t'][ti-2]
+                if prev_dt > 0:
+                    prev_vx = (ball0[bi]['x'][ti-1] - ball0[bi]['x'][ti-2]) / prev_dt
+                    prev_vy = (ball0[bi]['y'][ti-1] - ball0[bi]['y'][ti-2]) / prev_dt
+                    
+                    prev_v = np.array([prev_vx, prev_vy])
+                    curr_v = np.array([vx, vy])
+                    angle_change = angle_vector(prev_v, curr_v)
+                else:
+                    angle_change = 0
+            else:
+                angle_change = 0
+            
+            # Check for significant angle change (>1 degree)
+            checkangle = angle_change > 1 or angle_change == -1
+            
+            # Check cushion distances for this time step
+            current_pos = np.array([ball0[bi]['x'][ti], ball0[bi]['y'][ti]])
+            
+            # Calculate absolute velocity magnitude
+            velocity_magnitude = np.sqrt(vx**2 + vy**2)
+            
+            # Approximate next position using current position + velocity * next_time_step
+            next_pos_approx = current_pos + np.array([vx, vy]) * dt_next
+            
+            # Calculate cushion distances for current and approximated next positions
+            cushion_dists_curr = [
+                current_pos[1] - param['ballR'],                    # Bottom (0)
+                param['size'][0] - param['ballR'] - current_pos[0], # Right (1) 
+                param['size'][1] - param['ballR'] - current_pos[1], # Top (2)
+                current_pos[0] - param['ballR']                     # Left (3)
+            ]
+            
+            cushion_dists_next = [
+                next_pos_approx[1] - param['ballR'],                    # Bottom (0)
+                param['size'][0] - param['ballR'] - next_pos_approx[0], # Right (1)
+                param['size'][1] - param['ballR'] - next_pos_approx[1], # Top (2) 
+                next_pos_approx[0] - param['ballR']                     # Left (3)
+            ]
+            print(f"    Ball {bi}, Time {ti}, Current Pos: {cushion_dists_curr[1]}, Next Pos: {cushion_dists_next[1]}")
+            
+            # Check each cushion for collision
+            for cii in range(4):
+                # Check if ball crosses cushion boundary
+                crosses_cushion = (cushion_dists_curr[cii] > 0 and cushion_dists_next[cii] <= 0) #or \
+                                #(cushion_dists_curr[cii] <= 0 and cushion_dists_next[cii] > 0)
+                
+                if crosses_cushion:
+                    # Additional velocity direction checks
+                    velocity_check = False
+                    if cii == 0 and vy < 0:      # Bottom cushion, moving down
+                        velocity_check = True
+                    elif cii == 1 and vx > 0:   # Right cushion, moving right  
+                        velocity_check = True
+                    elif cii == 2 and vy > 0:   # Top cushion, moving up
+                        velocity_check = True
+                    elif cii == 3 and vx < 0:   # Left cushion, moving left
+                        velocity_check = True
+                    
+                    if velocity_check: # and checkangle:
+                            # Interpolate exact collision time and position
+                            if cushion_dists_curr[cii] != cushion_dists_next[cii]:
+                                # Linear interpolation to find exact collision time
+                                t_ratio = -cushion_dists_curr[cii] / (cushion_dists_next[cii] - cushion_dists_curr[cii])
+                                tc = ball0[bi]['t'][ti] + t_ratio * dt_next
+                                
+                                # Interpolate position at collision time
+                                collision_pos = current_pos + t_ratio * (next_pos_approx - current_pos)
+                            
+                            # Adjust position to cushion boundary
+                            if cii == 0:      # Bottom
+                                collision_pos[1] = param['ballR']
+                            elif cii == 1:    # Right
+                                collision_pos[0] = param['size'][0] - param['ballR']
+                            elif cii == 2:    # Top  
+                                collision_pos[1] = param['size'][1] - param['ballR']
+                            elif cii == 3:    # Left
+                                collision_pos[0] = param['ballR']
+                            
+                            # Store cushion hit
+                            cushion_hits[bi].append({
+                                'time': tc,
+                                'cushion': cii,
+                                'pos': collision_pos,
+                                'ball': bi
+                            })
+                            
+                            
+                            print(f"    Found cushion hit: Ball {bi}, Cushion {cii}, Time {tc:.4f}")
+    
+    # ===== PHASE 2: CREATE COMMON TIME STEPS INCLUDING CUSHION HITS =====
+    print("Phase 2: Creating common time steps with cushion hits...")
+    
+    # Collect all significant time points
+    all_time_points = []
+    
+    # Add original time points from all balls
+    for bi in range(3):
+        all_time_points.extend(ball0[bi]['t'])
+    
+    # Add cushion hit times
+    for bi in range(3):
+        for hit_info in cushion_hits[bi]:
+            all_time_points.append(hit_info['time'])
+    
+    # Create sorted unique common timeline
+    Tall_common = np.sort(np.unique(all_time_points))
+    
+    print(f"  Created common timeline with {len(Tall_common)} time points")
+    
+    # ===== PHASE 3: PROCESS BALL-BALL COLLISIONS WITH COMMON TIME STEPS =====
+    print("Phase 3: Processing ball-ball collisions...")
+    
     ti = -1
-    do_scan = True;
+    do_scan = True
+    Tall0 = Tall_common.copy()  # Use the common timeline
+    
     while do_scan:
         ti += 1
         
         # Approximate Position of Ball at next time step
+        if len(Tall0) < 2:
+            break
+            
         tappr = Tall0[0] + np.diff(Tall0[0:2]) * tvec
         dT = np.diff(Tall0[0:2])
-        # print(f"Processing time step {ti}, tappr {tappr[0]}...")
-        # if ti == 34:
-        #     print("Warning: Time step exceeds 34, stopping processing.")
-            
         
         for bi in range(3):
             # Check if it is last index
@@ -354,100 +495,41 @@ def extract_events(SA, si, param, plotflag=False):
             dy = np.array(b[bx1]['ya']) - np.array(b[bx2]['ya'])
             d[bbi]['BB'] = np.sqrt(dx**2 + dy**2) - 2 * param['ballR']
 
-        # Cushion distance calculation
-        for bi in range(3):
-            # Initialize cushion distances dictionary with 4 directions
-            b[bi]['cd'] = {
-                0: np.array(b[bi]['ya']) - param['ballR'],         # Bottom cushion, short
-                1: param['size'][0] - param['ballR'] - np.array(b[bi]['xa']),  # Right cushion, long
-                2: param['size'][1] - param['ballR'] - np.array(b[bi]['ya']),  # Top cushion, short
-                3: np.array(b[bi]['xa']) - param['ballR']          # Left cushion, long
-            }
+        # # Cushion distance calculation
+        # for bi in range(3):
+        #     # Initialize cushion distances dictionary with 4 directions
+        #     b[bi]['cd'] = {
+        #         0: np.array(b[bi]['ya']) - param['ballR'],         # Bottom cushion, short
+        #         1: param['size'][0] - param['ballR'] - np.array(b[bi]['xa']),  # Right cushion, long
+        #         2: param['size'][1] - param['ballR'] - np.array(b[bi]['ya']),  # Top cushion, short
+        #         3: np.array(b[bi]['xa']) - param['ballR']          # Left cushion, long
+        #     }
 
         # Initialize hit tracking
         hitlist = []
         lasthitball = 0
 
-
-        # Evaluate cushion hits
-        for bi in range(3):  # 0-based ball index (0, 1, 2)
-            for cii in range(4):  # 0-based cushion index (0:bottom, 1:right, 2:top, 3:left)
-                # Convert to numpy arrays for vector operations
-                cushion_dists = np.array(b[bi]['cd'][cii])
-                
-                # Check distance condition (any point <= 0)
-                checkdist = np.any(cushion_dists <= 0)
-                
-                # Check angle condition (angle > 1° or invalid measurement)
-                checkangle = b[bi]['a12'] > 1 or b[bi]['a12'] == -1
-                
-                # Current velocity components
-                velx, vely = b[bi]['v1'][0], b[bi]['v1'][1]
-                
-                checkcush = False
-                tc = 0.0
-                cushx = 0.0
-                cushy = 0.0
-
-                # check if in hitlist the last cushion hit with this cushion and this ball, was just one time step before
-                if hitlist and hitlist[-1][1] == bi and hitlist[-1][3] == cii and hitlist[-1][0] == tappr[-1]:
-                    continue
-
-                # Bottom cushion (cii=0), short
-                if checkdist and checkangle and cii == 0:
-                    if vely < 0 and vely != 0:  # Moving downward
-
-                        # Interpolate contact time
-                        f = interp1d(cushion_dists, tappr, fill_value='extrapolate')
-                        tc = float(f(0))
-                        # Interpolate contact position
-                        cushx = float(interp1d(tappr, b[bi]['xa'], fill_value='extrapolate')(tc))
-                        cushy = param['ballR']
-                        checkcush = True
-                        
-                # Right cushion (cii=1)
-                elif checkdist and checkangle and cii == 1:
-                    if velx > 0 and velx != 0:  # Moving right
-                        f = interp1d(cushion_dists, tappr, fill_value='extrapolate')
-                        tc = float(f(0))
-                        cushx = param['size'][0] - param['ballR']
-                        cushy = float(interp1d(tappr, b[bi]['ya'], fill_value='extrapolate')(tc))
-                        checkcush = True
-                        
-                # Top cushion (cii=2)
-                elif checkdist and checkangle and cii == 2:
-                    if vely > 0 and vely != 0:  # Moving upward
-                        f = interp1d(cushion_dists, tappr, fill_value='extrapolate')
-                        tc = float(f(0))
-                        cushy = param['size'][1] - param['ballR']
-                        cushx = float(interp1d(tappr, b[bi]['xa'], fill_value='extrapolate')(tc))
-                        checkcush = True
-                        
-                # Left cushion (cii=3)
-                elif checkdist and checkangle and cii == 3:
-                    if velx < 0 and velx != 0:  # Moving left
-                        f = interp1d(cushion_dists, tappr, fill_value='extrapolate')
-                        tc = float(f(0))
-                        cushx = param['ballR']
-                        cushy = float(interp1d(tappr, b[bi]['ya'], fill_value='extrapolate')(tc))
-                        checkcush = True
-                
-                # Handle negative time collision
-                if tc < 0:
-                    print(f"Warning: Negative collision time detected for ball {bi} on cushion {cii}")
-                
-                if checkcush:
+        # ===== ADD PRE-IDENTIFIED CUSHION HITS FOR CURRENT TIME WINDOW =====
+        current_time = Tall0[0]
+        next_time = Tall0[1] if len(Tall0) > 1 else current_time + 1.0
+        
+        # Check for cushion hits in current time window
+        for bi in range(3):
+            for hit_info in cushion_hits[bi]:
+                hit_time = hit_info['time']
+                # If cushion hit occurs in current time window
+                if current_time <= hit_time < next_time:
                     hitlist.append([
-                        tc,            # Contact time
-                        bi,            # Ball index
-                        2,             # Contact type (2=cushion)
-                        cii,           # Cushion ID (0-3)
-                        cushx,         # Contact X position
-                        cushy          # Contact Y position
+                        hit_time,           # Contact time
+                        bi,                 # Ball index  
+                        2,                  # Contact type (2=cushion)
+                        hit_info['cushion'], # Cushion ID (0-3)
+                        hit_info['pos'][0], # Contact X position
+                        hit_info['pos'][1]  # Contact Y position
                     ])
+                    # print(f"    Added pre-identified cushion hit: Ball {bi}, Cushion {hit_info['cushion']}, Time {hit_time:.4f}")
 
-
-        # Evaluate ball-ball hits
+        # ===== EVALUATE BALL-BALL HITS (UNCHANGED LOGIC) =====
         for bbi in range(3):
             bx1 = b1b2b3[BB[bbi][0]]  # First ball in pair
             bx2 = b1b2b3[BB[bbi][1]]  # Second ball in pair
@@ -486,7 +568,7 @@ def extract_events(SA, si, param, plotflag=False):
 
             # Time collision check
             checkdouble = False
-            if (tc >= hit[bx1]['t'][-1]+0.01) and (tc>= hit[bx1]['t'][-1]+0.01):
+            if (tc >= hit[bx1]['t'][-1]+0.01):
                 checkdouble = True
             
             # Final collision check
@@ -624,7 +706,7 @@ def extract_events(SA, si, param, plotflag=False):
         #     - delete current point in ball0
         bi_list = [0, 1, 2]  # List of balls to check for hits
         # Check if hitlist exists and next time step is valid
-        if hitlist and Tall0[1] >= tc:
+        if hitlist and Tall0[1] >= hitlist[0][0]:
             # Get earliest collision time
             tc = min(hit[0] for hit in hitlist)
             
